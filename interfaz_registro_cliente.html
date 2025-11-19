@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro de Cliente</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --container-w: 800px;
+      --container-pad: 20px;
+      --container-bl: 4px;
+
+      --banner-h: 64px;
+      --page-sidepad: 16px;
+      --banner-bg: #e6e9ee;
+      --banner-bg-hover: #d7dbe3;
+
+      --c-primary:#5c6bc0;
+      --c-primary-d:#3f51b5;
+      --c-green:#66BB6A;
+      --c-green-d:#57A05D;
+    }
+    body {
+      font-family: 'Open Sans', sans-serif;
+      background-color: #eeeeee;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      padding-top: calc(var(--banner-h) + 8px);
+    }
+    .container {
+      max-width: var(--container-w);
+      margin: auto;
+      padding: var(--container-pad);
+      background-color: #ffffff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+      border-left: var(--container-bl) solid var(--c-primary);
+    }
+    h1 { text-align: center; color: #000; font-size: 24px; font-weight: 600; margin-bottom: 20px; }
+    label { display: block; margin: 10px 0; color: #003366; font-size: 16px; font-weight: 400; }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="password"]{
+      width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #dddddd; border-radius: 5px;
+      box-sizing: border-box; transition: border-color 0.3s; font-size: 16px;
+    }
+    input:focus{ outline: none; border-color: #7da2a9; }
+    button{
+      display:block; width:100%; margin:10px 0; border:none; padding:15px 20px; border-radius:5px;
+      cursor:pointer; font-weight:600; transition: background-color .3s, transform .3s; color:#fff; font-size:16px;
+    }
+    .btn-registrar{ background:var(--c-green); }
+    .btn-registrar:hover{ background:var(--c-green-d); transform: translateY(-2px); }
+    .btn-slim{ width:min(640px,75%); margin-left:auto; margin-right:auto; }
+    .business-cta{ text-align:center; margin-top:6px; margin-bottom:4px; }
+    .business-cta a{
+      display:inline-block; margin-top:6px; padding:10px 14px; border:2px solid var(--c-primary); border-radius:6px;
+      color:var(--c-primary); font-weight:700; text-decoration:none; transition: background-color .2s, color .2s;
+    }
+    .business-cta a:hover{ background:var(--c-primary); color:#fff; }
+    p{ text-align:center; font-size:16px; color: #003366; font-weight:400; }
+    p a{ color:var(--c-primary); text-decoration:none; } p a:hover{ text-decoration:underline; }
+
+    .app-banner{
+      position:fixed; top:0; left:0; right:0; height:var(--banner-h); z-index:9999; background:transparent;
+    }
+    .app-banner .banner-box{
+      height:100%;
+      width:min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)),
+                calc(100% - var(--page-sidepad)*2));
+      margin:0 auto; background:var(--banner-bg); border-bottom:1px solid rgba(0,0,0,.06);
+      border-radius:10px; transition: background-color .2s; display:flex; align-items:center;
+    }
+    .app-banner .banner-box:hover, .app-banner .banner-box:focus-within{ background:var(--banner-bg-hover); }
+    .app-banner .banner-inner{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; width:100%; padding:0 12px; }
+    .banner-back{ justify-self:start; }
+    .banner-title{ justify-self:center; font-weight:700; color:#233247; }
+    .banner-logo{ justify-self:end; display:inline-flex; align-items:center; }
+    .banner-logo img{ width:52px; height:auto; display:block; }
+    .back-button{
+      display:inline-block; text-decoration:none; font-size:14px; color:var(--c-primary); padding:8px 12px; border:1px solid var(--c-primary); border-radius:6px; transition: background-color .2s, color .2s;
+    }
+    .back-button:hover{ background:var(--c-primary); color:#fff; }
+    .legal-outside{
+      margin:18px auto 24px; padding:10px 12px;
+      max-width: calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl));
+      text-align:center; color:#666; font-size:14px; line-height:1.35;
+    }
+    .hint{ color:#666; margin-top:-12px; margin-bottom:16px; font-size:13px; }
+    .error{ color:#b00020; font-size:13px; margin-top:-12px; margin-bottom:16px; display:none; }
+    @media (max-width: 768px){
+      .container{ width:100%; padding:10px; }
+      h1, .banner-title{ font-size:20px; }
+      label, button, p{ font-size:14px; }
+      .btn-slim{ width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Banner -->
+  <header class="app-banner" role="banner">
+    <div class="banner-box">
+      <div class="banner-inner">
+        <a href="#" class="back-button banner-back" onclick="history.back(); return false;">&larr; Volver</a>
+        <div class="banner-title">Registro de Cliente</div>
+        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
+          <img src="LogoCitasYa.png" alt="Citas Ya">
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Registro de Cliente</h1>
+
+    <form id="registroForm" novalidate>
+      <label for="nombre">Nombre Completo</label>
+      <input type="text" id="nombre" autocomplete="name" required>
+      <div id="errNombre" class="error">Ingresa tu nombre (mínimo 2 caracteres).</div>
+
+      <label for="correo">Correo</label>
+      <input type="email" id="correo" autocomplete="email" required>
+      <div class="hint">Ej: nombre@dominio.com</div>
+      <div id="errCorreo" class="error">Ingresa un correo válido que no esté registrado.</div>
+
+      <label for="numero">Número</label>
+      <input type="tel" id="numero" autocomplete="tel" required>
+      <div class="hint">Solo dígitos, 7 a 15 caracteres.</div>
+      <div id="errNumero" class="error">Ingresa un número válido que no esté registrado.</div>
+
+      <label for="usuario">Usuario</label>
+      <input type="text" id="usuario" autocomplete="username" required>
+      <div class="hint">3–20 caracteres. Letras, números, punto, guion o guion bajo.</div>
+      <div id="errUsuario" class="error">El usuario no es válido o ya existe.</div>
+
+      <label for="contrasena">Contraseña</label>
+      <input type="password" id="contrasena" autocomplete="new-password" required>
+      <div class="hint">Mínimo 6 caracteres.</div>
+      <div id="errPass" class="error">La contraseña es muy corta.</div>
+
+      <button type="submit" class="btn-registrar btn-slim">Registrar como Cliente</button>
+    </form>
+
+    <div class="business-cta" aria-label="Registro de negocio">
+      <span>¿Eres barbero o tienes una barbería?</span><br>
+      <a href="interfaz_registrar_negocio.html">Registrar mi negocio</a>
+    </div>
+
+    <p>¿Ya tienes cuenta? <a href="interfaz_login.html">Inicia sesión</a></p>
+  </div>
+
+  <div class="legal-outside">
+    Todos los derechos reservados © 2025<br>
+    Citas Ya S.A.S - Nit 810.000.000-0
+  </div>
+
+  <script>
+    /* ====== Almacenamiento y retorno ====== */
+    const LS_USERS = 'cy_users';
+    const LS_SESS  = 'cy_session';
+    const SS_RETURN= 'cy_return_to';
+
+    const loadUsers = () => { try { return JSON.parse(localStorage.getItem(LS_USERS)) || []; } catch (_) { return []; } };
+    const saveUsers = (arr) => localStorage.setItem(LS_USERS, JSON.stringify(arr));
+    const saveSession = (user) => localStorage.setItem(LS_SESS, JSON.stringify({ user }));
+
+    // Normalizadores
+    const normEmail = s => (s||'').trim().toLowerCase();
+    const normUser  = s => (s||'').trim().toLowerCase();
+    const normPhone = s => (s||'').replace(/\D+/g, '');
+
+    // Validadores
+    const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(v);
+    const isUser  = v => /^[a-zA-Z0-9._-]{3,20}$/.test(v);
+    const isPhone = v => /^\d{7,15}$/.test(v);
+    const isPass  = v => (v||'').length >= 6;
+
+    // UI helpers
+    const $ = s => document.querySelector(s);
+    const show = id => document.getElementById(id).style.display = 'block';
+    const hide = id => document.getElementById(id).style.display = 'none';
+
+    document.getElementById('registroForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+
+      const nombre  = $('#nombre').value.trim();
+      const correo  = normEmail($('#correo').value);
+      const numero  = normPhone($('#numero').value);
+      const usuario = normUser($('#usuario').value);
+      const pass    = $('#contrasena').value;
+
+      let valid = true;
+      if(!nombre || nombre.length < 2){ show('errNombre'); valid=false; } else hide('errNombre');
+      if(!isEmail(correo)){ show('errCorreo'); valid=false; } else hide('errCorreo');
+      if(!isPhone(numero)){ show('errNumero'); valid=false; } else hide('errNumero');
+      if(!isUser(usuario)){ show('errUsuario'); valid=false; } else hide('errUsuario');
+      if(!isPass(pass)){ show('errPass'); valid=false; } else hide('errPass');
+
+      if(!valid) return;
+
+      const users = loadUsers();
+      const dupMail  = users.some(u => (u.email||'') === correo);
+      const dupUser  = users.some(u => (u.username||'') === usuario);
+      const dupPhone = users.some(u => (u.phone||'') === numero);
+
+      if(dupMail){ show('errCorreo'); return; } else hide('errCorreo');
+      if(dupUser){ show('errUsuario'); return; } else hide('errUsuario');
+      if(dupPhone){ show('errNumero'); return; } else hide('errNumero');
+
+      const newUser = {
+        id: 'u-' + Date.now(),
+        name: nombre,
+        email: correo,
+        phone: numero,
+        username: usuario,
+        password: pass,          // Solo para demo/front-end
+        role: 'cliente',
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      saveUsers(users);
+
+      // Crear sesión y redirigir a donde venía (si aplica)
+      saveSession(newUser);
+      const goBack = sessionStorage.getItem(SS_RETURN);
+      if(goBack){
+        window.location.href = goBack;
+      }else{
+        window.location.href = 'interfaz_agendar.html';
+      }
+    });
+  </script>
+</body>
+</html>

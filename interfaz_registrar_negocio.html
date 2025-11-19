@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Negocio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+/* ===== Variables (ajustadas a esta interfaz) ===== */
+:root{
+  --container-w: 920px;
+  --container-pad: 20px;
+  --container-bl: 4px;
+
+  --banner-h: 64px;
+  --page-sidepad: 16px;
+  --banner-bg: #e6e9ee;
+  --banner-bg-hover: #d7dbe3;
+}
+
+/* ===== Base ===== */
+body {
+  font-family: 'Open Sans', sans-serif;
+  background-color: #eeeeee;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+  padding-top: calc(var(--banner-h) + 8px);
+}
+.container {
+  position: relative;
+  max-width: var(--container-w);
+  margin: auto;
+  padding: var(--container-pad);
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  border-radius: 10px;
+  border-left: var(--container-bl) solid #5c6bc0;
+}
+h1, h2 {
+  text-align: center;
+  color: #000;
+  font-weight: 600;
+  margin: 20px 0;
+}
+label {
+  display: block;
+  margin: 10px 0 4px;
+  color: #003366;
+  font-size: 16px;
+}
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #dddddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+input:focus, select:focus { outline: none; border-color: #7da2a9; }
+
+/* ===== Botones ===== */
+.btn{
+  display:block;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  transition: background-color .2s, transform .2s;
+  padding:12px 20px;
+  border-radius:5px;
+  width:100%;
+  margin:10px 0;
+  font-size:16px;
+  color:#fff;
+}
+.btn:hover{ transform: translateY(-1px); }
+
+.btn-blue{ background:#5c6bc0; }
+.btn-blue:hover{ background:#3f51b5; }
+.btn-green{ background:#66bb6a; }
+.btn-green:hover{ background:#43a047; }
+.btn-red{ background:#ef5350; }
+.btn-red:hover{ background:#e53935; }
+
+.btn-icon{
+  display:inline-block; padding:4px 8px; margin-right:4px;
+  border-radius:4px; font-size:14px; width:auto; color:#fff;
+}
+.btn-icon-blue{ background:#5c6bc0; }
+.btn-icon-blue:hover{ background:#3f51b5; }
+.btn-icon-red{ background:#ef5350; }
+.btn-icon-red:hover{ background:#e53935; }
+
+/* Botones 3/4 centrados */
+.btn-slim{
+  width: min(640px, 75%);
+  margin: 12px auto;
+}
+
+/* Forzar “Agregar” en azul */
+#addService.btn, #addStaff.btn{ background:#5c6bc0 !important; }
+#addService.btn:hover, #addStaff.btn:hover{ background:#3f51b5 !important; }
+
+/* Tablas / ayudas */
+table{ width:100%; border-collapse:collapse; margin-bottom:10px; }
+th, td{ padding:8px; text-align:left; }
+th{ background:#f5f5f5; color:#555; font-weight:600; }
+.token-preview{ color:#666; font-size:14px; }
+small{ color:#555; }
+.error{ display:block; color:#d32f2f; font-size:14px; }
+.badge{
+  display:inline-block; padding:4px 8px; border-radius:999px;
+  font-size:12px; line-height:1; margin-left:8px;
+}
+.badge-ok{ background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; }
+.badge-warn{ background:#fff3e0; color:#ef6c00; border:1px solid #ffe0b2; }
+
+/* ===== Banner ===== */
+.app-banner{
+  position: fixed; top: 0; left: 0; right: 0; height: var(--banner-h);
+  z-index: 9999; background: transparent;
+}
+.app-banner .banner-box{
+  height: 100%;
+  width: min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)),
+             calc(100% - var(--page-sidepad)*2));
+  margin: 0 auto;
+  background: var(--banner-bg);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  border-radius: 10px;
+  transition: background-color .2s ease;
+  display: flex; align-items: center;
+}
+.app-banner .banner-box:hover,
+.app-banner .banner-box:focus-within{ background: var(--banner-bg-hover); }
+.app-banner .banner-inner{
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  gap: 8px; width: 100%; padding: 0 12px;
+}
+.banner-back{ justify-self: start; }
+.banner-title{ justify-self: center; font-weight: 700; color: #233247; }
+.banner-logo{ justify-self: end; display: inline-flex; align-items: center; }
+.banner-logo img{ width: 52px; height: auto; display: block; }
+
+.back-button{
+  display:inline-block; text-decoration:none; font-size:14px; color:#5c6bc0;
+  padding:8px 12px; border:1px solid #5c6bc0; border-radius:6px;
+  transition: background-color .2s, color .2s;
+}
+.back-button:hover{ background:#5c6bc0; color:#fff; }
+
+/* Footer legal */
+.legal-outside{
+  margin: 18px auto 24px;
+  padding: 10px 12px;
+  max-width: calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl));
+  text-align: center; color: #666; font-size: 14px; line-height: 1.35;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  h1{ font-size:22px; }
+  h2{ font-size:18px; }
+  label, button{ font-size:14px; }
+  .btn-slim{ width:100%; }
+}
+  </style>
+</head>
+<body>
+
+<!-- ===== Banner superior ===== -->
+<header class="app-banner" role="banner">
+  <div class="banner-box">
+    <div class="banner-inner">
+      <a href="#" class="back-button banner-back" onclick="history.back(); return false;">&larr; Volver</a>
+      <div class="banner-title">Registrar negocio</div>
+      <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
+        <img src="LogoCitasYa.png" alt="Citas Ya">
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <h1>Registrar Negocio</h1>
+
+  <!-- Datos del negocio -->
+  <section id="datos-negocio">
+    <h2>Datos del negocio</h2>
+
+    <label for="shopName">
+      Nombre de la barbería/peluquería
+      <span id="businessStatus" class="badge badge-warn">Negocio nuevo</span>
+    </label>
+    <input type="text" id="shopName" list="businessList" placeholder="Ej: Barbería Central">
+    <datalist id="businessList"></datalist>
+    <span class="error" id="error-shopName"></span>
+
+    <label for="shopAddress">Dirección</label>
+    <input type="text" id="shopAddress" list="addressList" autocomplete="off" placeholder="Ej: Carrera 23 #60-36">
+    <datalist id="addressList">
+      <option value="Carrera 23 #60-36">
+      <option value="Calle 50 #25-30">
+      <option value="Avenida 19 #45-10">
+    </datalist>
+    <input type="hidden" id="shopLat">
+    <input type="hidden" id="shopLng">
+    <small id="addressPreview"></small>
+    <span class="error" id="error-shopAddress"></span>
+  </section>
+
+  <!-- Datos del responsable -->
+  <section id="datos-responsable">
+    <h2>Datos del responsable</h2>
+    <label for="ownerName">Nombre completo</label>
+    <input type="text" id="ownerName">
+    <span class="error" id="error-ownerName"></span>
+
+    <label for="ownerEmail">Correo</label>
+    <input type="email" id="ownerEmail">
+    <span class="error" id="error-ownerEmail"></span>
+
+    <label for="ownerPhone">Teléfono</label>
+    <input type="tel" id="ownerPhone" placeholder="Ej: 3001234567">
+    <span class="error" id="error-ownerPhone"></span>
+
+    <label for="ownerPass">Contraseña <small>(mínimo 6 caracteres)</small></label>
+    <input type="password" id="ownerPass">
+    <span class="error" id="error-ownerPass"></span>
+  </section>
+
+  <!-- Servicios -->
+  <section id="datos-servicios">
+    <h2>Servicios del establecimiento</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Servicio</th>
+          <th>Duración (min)</th>
+          <th>Precio (COP)</th>
+          <th>Tokens</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="servicesBody"></tbody>
+    </table>
+    <button type="button" id="addService" class="btn btn-blue btn-slim">Agregar servicio (+)</button>
+    <span class="error" id="error-services"></span>
+  </section>
+
+  <!-- Personal -->
+  <section id="datos-personal">
+    <h2>Personal del establecimiento</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Personal</th>
+          <th>Servicios que ofrece</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="staffBody"></tbody>
+    </table>
+    <button type="button" id="addStaff" class="btn btn-blue btn-slim">Agregar personal (+)</button>
+    <span class="error" id="error-staff"></span>
+  </section>
+
+  <!-- Acciones -->
+  <section id="datos-submit">
+    <button type="button" id="submitForm" class="btn btn-green btn-slim">Guardar y continuar</button>
+  </section>
+
+  <!-- Resumen -->
+  <section id="datos-resumen" style="display:none;">
+    <h2>Resumen</h2>
+    <pre id="summaryText"></pre>
+  </section>
+
+  <!-- Registrar / Actualizar -->
+  <section id="registro-final" style="display:none;">
+    <button type="button" id="registerBusiness" class="btn btn-green btn-slim">Registrar/Actualizar negocio</button>
+  </section>
+</div>
+
+<!-- Footer legal -->
+<div class="legal-outside">
+  Todos los derechos reservados © 2025<br>
+  Citas Ya S.A.S - Nit 810.000.000-0
+</div>
+
+<script>
+  /* ========= Normalización y utilidades ========= */
+  const normalizeSlug = (str='') =>
+    str.normalize('NFD')
+       .replace(/[\u0300-\u036f]/g,'')    // quita acentos
+       .toLowerCase()
+       .replace(/[^a-z0-9]+/g,' ')         // no alfanum => espacio
+       .trim()
+       .replace(/\s+/g,'-');               // espacios => guion
+  
+  const fmtCOP = n => {
+    const num = Number(n);
+    return Number.isFinite(num) ? num.toLocaleString('es-CO') : '';
+  };
+  function debounce(fn, d){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),d); }; }
+  function parseCOPInput(str){
+    if (str===''||str==null) return '';
+    const d=String(str).replace(/[^\d]/g,'');
+    return d?Number(d):'';
+  }
+  function formatCOPInput(inputEl, value){ inputEl.value = value === '' ? '' : fmtCOP(value); }
+  const computeTokens = mins => Math.max(1, Math.ceil(mins/30));
+  const approxTokens = mins => `≈ ${computeTokens(mins)} token${computeTokens(mins)>1?'s':''}`;
+  
+  /* ========= Storage de negocios (localStorage) ========= */
+  const LS_KEY = 'cy_businesses'; // lista completa de negocios
+  const SS_DRAFT = 'cy_shop_draft'; // borrador sesión
+  const SS_SUBMITTED = 'cy_shop_submitted';
+  const SS_REGISTERED = 'cy_shop_registered';
+  
+  const getBusinesses = () => {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
+    catch(e){ return []; }
+  };
+  const saveBusinesses = (list=[]) => localStorage.setItem(LS_KEY, JSON.stringify(list));
+  
+  function upsertBusiness(biz){
+    const list = getBusinesses();
+    const idx = list.findIndex(b => b.slug === biz.slug);
+    if (idx >= 0) list[idx] = biz; else list.push(biz);
+    saveBusinesses(list);
+    return list;
+  }
+  
+  /* ========= Autocompletar barberías ========= */
+  function refreshBusinessDatalist(){
+    const dl = document.getElementById('businessList');
+    dl.innerHTML = '';
+    getBusinesses().forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.name; // visible original
+      dl.appendChild(opt);
+    });
+  }
+  
+  /* ========= Dirección / ubicación ========= */
+  const shopName = document.getElementById('shopName');
+  const businessStatus = document.getElementById('businessStatus');
+  
+  const shopAddress = document.getElementById('shopAddress');
+  const shopLat = document.getElementById('shopLat');
+  const shopLng = document.getElementById('shopLng');
+  const addressPreview = document.getElementById('addressPreview');
+  
+  function updateAddressPreview(){
+    addressPreview.textContent = shopAddress.value ? `Dirección: ${shopAddress.value}` : '';
+  }
+  shopAddress.addEventListener('input', ()=>{ updateAddressPreview(); debouncedSave(); });
+  
+  /* ========= Servicios ========= */
+  let services = [];
+  let serviceIdCounter = 0;
+  const servicesBody = document.getElementById('servicesBody');
+  
+  function createService(name='', duration=30, price=''){
+    return { id:`srv-${serviceIdCounter++}`, name, durationMins:duration, priceCOP:price, order:services.length };
+  }
+  function renderServices(){
+    services.sort((a,b)=>a.order-b.order);
+    servicesBody.innerHTML = '';
+    services.forEach((srv, idx)=>{
+      srv.order = idx;
+      const tr = document.createElement('tr'); tr.dataset.id=srv.id;
+  
+      // Nombre
+      const nameTd=document.createElement('td');
+      const nameInput=document.createElement('input');
+      nameInput.type='text';
+      nameInput.value=srv.name;
+      nameInput.className='service-name';
+      nameInput.placeholder='Ej: Corte clásico';
+      nameInput.addEventListener('input', e=>{
+        srv.name=e.target.value;
+        // ACTUALIZA inmediatamente la columna "Servicios que ofrece" del personal
+        syncStaffServiceColumns();
+        debouncedSave();
+      });
+      nameTd.appendChild(nameInput);
+      const nameErr=document.createElement('span'); nameErr.className='error name-error'; nameTd.appendChild(nameErr);
+  
+      // Duración
+      const durTd=document.createElement('td');
+      const durInput=document.createElement('input');
+      durInput.type='number'; durInput.min='20'; durInput.max='120'; durInput.step='10';
+      durInput.value=srv.durationMins;
+      durInput.className='service-duration';
+      durInput.placeholder='20–120 (x10)';
+      durInput.addEventListener('input', e=>{
+        let v=parseInt(e.target.value,10);
+        if(isNaN(v)) v=20;
+        v=Math.min(120, Math.max(20, v));
+        v=Math.round(v/10)*10;
+        e.target.value=v;
+        srv.durationMins=v;
+        tr.querySelector('.token-preview').textContent=approxTokens(srv.durationMins);
+        debouncedSave();
+      });
+      durTd.appendChild(durInput);
+      const durErr=document.createElement('span'); durErr.className='error dur-error'; durTd.appendChild(durErr);
+  
+      // Precio
+      const priceTd=document.createElement('td');
+      const priceInput=document.createElement('input');
+      priceInput.type='text';
+      priceInput.inputMode='numeric';
+      priceInput.placeholder='Ej: 18.000';
+      priceInput.value = srv.priceCOP==='' ? '' : fmtCOP(srv.priceCOP);
+      priceInput.className='service-price';
+      priceInput.addEventListener('input', e=>{
+        // Guardar inmediatamente y limpiar mensaje de error de ese campo
+        srv.priceCOP=parseCOPInput(e.target.value);
+        const priceErr = priceTd.querySelector('.price-error');
+        if (priceErr) priceErr.textContent = '';
+        debouncedSave();
+      });
+      priceInput.addEventListener('blur', ()=>{
+        formatCOPInput(priceInput, srv.priceCOP);
+      });
+      priceTd.appendChild(priceInput);
+      const priceErr=document.createElement('span'); priceErr.className='error price-error'; priceTd.appendChild(priceErr);
+  
+      // Tokens preview
+      const tokenTd=document.createElement('td');
+      const tokenSpan=document.createElement('span'); tokenSpan.className='token-preview'; tokenSpan.textContent=approxTokens(srv.durationMins);
+      tokenTd.appendChild(tokenSpan);
+  
+      // Acciones
+      const actionTd=document.createElement('td');
+      const upBtn=document.createElement('button'); upBtn.type='button'; upBtn.textContent='↑'; upBtn.className='btn-icon btn-icon-blue';
+      upBtn.addEventListener('click',()=>{ moveService(srv.id,-1); });
+      const downBtn=document.createElement('button'); downBtn.type='button'; downBtn.textContent='↓'; downBtn.className='btn-icon btn-icon-blue';
+      downBtn.addEventListener('click',()=>{ moveService(srv.id,1); });
+      const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.textContent='✕'; delBtn.className='btn-icon btn-icon-red';
+      delBtn.addEventListener('click',()=>{ if(confirm('¿Eliminar este servicio?')) removeService(srv.id); });
+      actionTd.append(upBtn,downBtn,delBtn);
+  
+      tr.append(nameTd,durTd,priceTd,tokenTd,actionTd);
+      servicesBody.appendChild(tr);
+    });
+    syncStaffServiceColumns();
+  }
+  function addServiceRow(service=createService()){ services.push(service); renderServices(); debouncedSave(); }
+  function moveService(id,dir){ const i=services.findIndex(s=>s.id===id); const ni=i+dir; if(ni<0||ni>=services.length) return; [services[i],services[ni]]=[services[ni],services[i]]; renderServices(); debouncedSave(); }
+  function removeService(id){ services = services.filter(s=>s.id!==id); staff.forEach(p=>{ delete p.offers[id]; }); renderServices(); debouncedSave(); }
+  
+  /* ========= Personal ========= */
+  let staff = [];
+  let staffIdCounter = 0;
+  const staffBody = document.getElementById('staffBody');
+  
+  function createStaff(name=''){ return { id:`stf-${staffIdCounter++}`, name, offers:{} }; }
+  function renderStaff(){
+    staffBody.innerHTML='';
+    staff.forEach(person=>{
+      const tr=document.createElement('tr'); tr.dataset.id=person.id;
+  
+      const nameTd=document.createElement('td');
+      const nameInput=document.createElement('input'); nameInput.type='text'; nameInput.value=person.name; nameInput.className='staff-name'; nameInput.placeholder='Ej: Juan Pérez';
+      nameInput.addEventListener('input', e=>{ person.name=e.target.value; debouncedSave(); });
+      nameTd.appendChild(nameInput);
+      const nameErr=document.createElement('span'); nameErr.className='error'; nameTd.appendChild(nameErr);
+  
+      const servicesTd=document.createElement('td'); servicesTd.className='staff-services';
+  
+      const actionTd=document.createElement('td');
+      const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.textContent='✕'; delBtn.className='btn-icon btn-icon-red';
+      delBtn.addEventListener('click',()=>{ if(confirm('¿Eliminar este personal?')) removeStaff(person.id); });
+  
+      tr.appendChild(nameTd); tr.appendChild(servicesTd); actionTd.appendChild(delBtn); tr.appendChild(actionTd);
+      staffBody.appendChild(tr);
+    });
+    syncStaffServiceColumns();
+  }
+  function syncStaffServiceColumns(){
+    staff.forEach(person=>{
+      const tr=staffBody.querySelector(`tr[data-id='${person.id}']`); if(!tr) return;
+      const servicesTd=tr.querySelector('.staff-services'); servicesTd.innerHTML='';
+      services.forEach(service=>{
+        const label=document.createElement('label'); label.style.marginRight='12px';
+        const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!person.offers[service.id];
+        cb.addEventListener('change',()=>{ person.offers[service.id]=cb.checked; debouncedSave(); });
+        const labelText = service.name && service.name.trim() ? service.name : '(sin nombre)';
+        label.appendChild(cb); label.appendChild(document.createTextNode(' ' + labelText));
+        servicesTd.appendChild(label);
+      });
+    });
+  }
+  function addStaffRow(person=createStaff()){ staff.push(person); renderStaff(); debouncedSave(); }
+  function removeStaff(id){ staff = staff.filter(p=>p.id!==id); renderStaff(); debouncedSave(); }
+  
+  /* ========= Validaciones ========= */
+  function clearErrors(){ document.querySelectorAll('.error').forEach(el=>el.textContent=''); }
+  function validateForm(data){
+    clearErrors(); let valid=true; let first=null;
+  
+    const shopNameEl=document.getElementById('shopName');
+    if(!data.shop.name){ document.getElementById('error-shopName').textContent='Requerido'; first=first||shopNameEl; valid=false; }
+  
+    const addressEl=document.getElementById('shopAddress');
+    if(!data.shop.address){ document.getElementById('error-shopAddress').textContent='Requerido'; first=first||addressEl; valid=false; }
+  
+    const ownerNameEl=document.getElementById('ownerName');
+    if(!data.owner.fullName){ document.getElementById('error-ownerName').textContent='Requerido'; first=first||ownerNameEl; valid=false; }
+  
+    // CORREO: regex más robusta
+    const emailPattern=/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const ownerEmailEl=document.getElementById('ownerEmail');
+    if(!emailPattern.test(data.owner.email)){ document.getElementById('error-ownerEmail').textContent='Correo inválido'; first=first||ownerEmailEl; valid=false; }
+  
+    // TEL: acepta espacios, guiones, etc. y valida que queden 10 dígitos
+    const phoneDigits = data.owner.phone.replace(/\D/g,'');
+    const ownerPhoneEl=document.getElementById('ownerPhone');
+    if(phoneDigits.length!==10){ document.getElementById('error-ownerPhone').textContent='Teléfono inválido'; first=first||ownerPhoneEl; valid=false; }
+    else { data.owner.phone = phoneDigits; }
+  
+    const ownerPassEl=document.getElementById('ownerPass');
+    if(data.owner.password.length<6){ document.getElementById('error-ownerPass').textContent='Mínimo 6 caracteres'; first=first||ownerPassEl; valid=false; }
+  
+    if(data.services.length===0){ document.getElementById('error-services').textContent='Agrega al menos un servicio'; valid=false; }
+    const seen=new Set();
+    data.services.forEach(s=>{
+      const row=servicesBody.querySelector(`tr[data-id='${s.id}']`); if(!row) return;
+      const nameInput=row.querySelector('.service-name'); const nameErr=row.querySelector('.name-error');
+      const priceInput=row.querySelector('.service-price'); const priceErr=row.querySelector('.price-error');
+      const durInput=row.querySelector('.service-duration'); const durErr=row.querySelector('.dur-error');
+  
+      const nameTrim=s.name.trim();
+      if(!nameTrim){ nameErr.textContent='Requerido'; first=first||nameInput; valid=false; }
+      else{
+        const key=nameTrim.toLowerCase();
+        if(seen.has(key)){ nameErr.textContent='Duplicado'; first=first||nameInput; valid=false; }
+        else { nameErr.textContent=''; }
+        seen.add(key);
+      }
+  
+      if(s.priceCOP===''||s.priceCOP<0){ priceErr.textContent='Precio inválido'; first=first||priceInput; valid=false; }
+      else { priceErr.textContent=''; }
+  
+      if(s.durationMins<20||s.durationMins>120||(s.durationMins%10)!==0){
+        durErr.textContent='Duración inválida (20–120, x10)'; first=first||durInput; valid=false;
+      } else {
+        durErr.textContent='';
+      }
+    });
+  
+    staff.forEach(st=>{
+      const row=staffBody.querySelector(`tr[data-id='${st.id}']`); if(!row) return;
+      const nameInput=row.querySelector('.staff-name'); const err=row.querySelector('.error');
+      const hasOffers=Object.values(st.offers).some(Boolean);
+      if(st.name.trim()&&!hasOffers){ err.textContent='Seleccione un servicio'; first=first||row.querySelector('.staff-services input'); valid=false; }
+      if(!st.name.trim()&&hasOffers){ err.textContent='Nombre requerido'; first=first||nameInput; valid=false; }
+      if(st.name.trim() && hasOffers){ err.textContent=''; }
+    });
+  
+    if(first) first.focus();
+    return valid;
+  }
+  
+  /* ========= Draft sesión ========= */
+  function getFormData(){
+    return {
+      shop:{
+        name:document.getElementById('shopName').value.trim(),
+        slug: normalizeSlug(document.getElementById('shopName').value.trim()),
+        address:document.getElementById('shopAddress').value.trim(),
+        lat:document.getElementById('shopLat').value,
+        lng:document.getElementById('shopLng').value
+      },
+      owner:{
+        fullName:document.getElementById('ownerName').value.trim(),
+        email:document.getElementById('ownerEmail').value.trim(),
+        phone:document.getElementById('ownerPhone').value.trim(),
+        password:document.getElementById('ownerPass').value
+      },
+      services: services.map(s=>({ id:s.id, name:s.name.trim(), durationMins:s.durationMins, priceCOP:s.priceCOP===''?'':Number(s.priceCOP), order:s.order })),
+      staff: staff.map(p=>({ id:p.id, name:p.name.trim(), offers:p.offers }))
+    };
+  }
+  const saveDraft = ()=> sessionStorage.setItem(SS_DRAFT, JSON.stringify(getFormData()));
+  const debouncedSave = debounce(saveDraft, 300);
+  
+  /* ========= Carga de negocio existente por nombre ========= */
+  function loadBusinessIntoForm(biz){
+    // Datos base
+    shopName.value = biz.name || '';
+    document.getElementById('shopAddress').value = biz.address || '';
+    document.getElementById('shopLat').value = biz.lat || '';
+    document.getElementById('shopLng').value = biz.lng || '';
+    updateAddressPreview();
+  
+    // Responsable
+    document.getElementById('ownerName').value  = (biz.owner && biz.owner.fullName) || '';
+    document.getElementById('ownerEmail').value = (biz.owner && biz.owner.email) || '';
+    document.getElementById('ownerPhone').value = (biz.owner && biz.owner.phone) || '';
+    document.getElementById('ownerPass').value  = (biz.owner && biz.owner.password) || '';
+  
+    // Servicios / Personal (respetando ids)
+    services = (biz.services || []).map(s => ({ ...s }));
+    serviceIdCounter = services.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0) + 1;
+  
+    staff = (biz.staff || []).map(p => ({ ...p, offers:{ ...(p.offers||{}) } }));
+    staffIdCounter = staff.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0) + 1;
+  
+    renderServices();
+    renderStaff();
+  
+    businessStatus.textContent = 'Negocio cargado';
+    businessStatus.className = 'badge badge-ok';
+  }
+  
+  function tryLoadExistingByName(){
+    const name = shopName.value.trim();
+    if (!name){ businessStatus.textContent='Negocio nuevo'; businessStatus.className='badge badge-warn'; return; }
+    const slug = normalizeSlug(name);
+    const list = getBusinesses();
+    const biz = list.find(b => b.slug === slug);
+    if (biz){
+      loadBusinessIntoForm(biz);
+    } else {
+      // Si no existe, ponemos predeterminados (solo si estamos vacíos)
+      if (services.length===0 && staff.length===0){
+        services = [];
+        addServiceRow(createService('Corte', 30, ''));
+        addServiceRow(createService('Barba', 20, ''));
+        addServiceRow(createService('Corte y barba', 40, ''));
+        staff = [];
+        renderServices(); renderStaff();
+      }
+      businessStatus.textContent='Negocio nuevo';
+      businessStatus.className='badge badge-warn';
+    }
+    debouncedSave();
+  }
+  shopName.addEventListener('blur', tryLoadExistingByName);
+  shopName.addEventListener('input', debounce(tryLoadExistingByName, 400));
+  
+  /* ========= Resumen (mock) ========= */
+  const summaryText=document.getElementById('summaryText');
+  const summarySection=document.getElementById('datos-resumen');
+  const registerSection=document.getElementById('registro-final');
+  
+  function showSummary(data){
+    let lines=[];
+    lines.push(`Negocio: ${data.shop.name}`);
+    lines.push(`Dirección: ${data.shop.address}`);
+    if(data.shop.lat && data.shop.lng){ lines.push(`Lat/Lng: ${data.shop.lat}, ${data.shop.lng}`); }
+    lines.push(`Responsable: ${data.owner.fullName}`);
+    lines.push(`Correo: ${data.owner.email}`);
+    lines.push(`Teléfono: ${data.owner.phone}`);
+    lines.push('Servicios:');
+    data.services.sort((a,b)=>a.order-b.order).forEach(s=>{
+      lines.push(` - ${s.name} (${s.durationMins} min) $${fmtCOP(s.priceCOP)} COP (${approxTokens(s.durationMins)})`);
+    });
+    if(data.staff.length){
+      lines.push('Personal:');
+      data.staff.forEach(p=>{
+        if(!p.name.trim()) return;
+        const offerNames=data.services.filter(s=>p.offers[s.id]).map(s=>s.name).join(', ');
+        lines.push(` - ${p.name}: ${offerNames || '—'}`);
+      });
+    }
+    summaryText.textContent=lines.join('\n');
+    summarySection.style.display='block';
+    registerSection.style.display='block';
+  }
+  
+  /* ========= Eventos ========= */
+  document.getElementById('addService').addEventListener('click', ()=>addServiceRow());
+  document.getElementById('addStaff').addEventListener('click', ()=>addStaffRow());
+  
+  document.getElementById('submitForm').addEventListener('click', ()=>{
+    const data=getFormData();
+    if(validateForm(data)){
+      showSummary(data);
+      sessionStorage.setItem(SS_SUBMITTED, JSON.stringify(data));
+    }
+  });
+  
+  document.getElementById('registerBusiness').addEventListener('click', ()=>{
+    const data=getFormData();
+    if(!validateForm(data)) return;
+  
+    // Estructura a guardar en el directorio de negocios
+    const biz = {
+      slug: data.shop.slug,
+      name: data.shop.name,
+      address: data.shop.address,
+      lat: data.shop.lat,
+      lng: data.shop.lng,
+      owner: { ...data.owner },
+      services: data.services.slice(),
+      staff: data.staff.slice()
+    };
+  
+    const list = upsertBusiness(biz);               // crea/actualiza en directorio
+    localStorage.setItem(LS_KEY, JSON.stringify(list));
+    sessionStorage.setItem(SS_REGISTERED, JSON.stringify(biz)); // último registro
+  
+    refreshBusinessDatalist();
+    businessStatus.textContent='Negocio actualizado';
+    businessStatus.className='badge badge-ok';
+  
+    alert('Datos del negocio guardados/actualizados correctamente.');
+  });
+  
+  /* ========= Carga inicial ========= */
+  document.addEventListener('DOMContentLoaded', ()=>{
+    refreshBusinessDatalist();
+  
+    // Intentar recuperar borrador de sesión
+    const draft=sessionStorage.getItem(SS_DRAFT);
+    if(draft){
+      const data=JSON.parse(draft);
+  
+      // Datos base
+      shopName.value=data.shop.name||'';
+      document.getElementById('shopAddress').value=data.shop.address||'';
+      document.getElementById('shopLat').value=data.shop.lat||'';
+      document.getElementById('shopLng').value=data.shop.lng||'';
+      updateAddressPreview();
+  
+      // Responsable
+      document.getElementById('ownerName').value=data.owner.fullName||'';
+      document.getElementById('ownerEmail').value=data.owner.email||'';
+      document.getElementById('ownerPhone').value=data.owner.phone||'';
+      document.getElementById('ownerPass').value=data.owner.password||'';
+  
+      // Servicios / Personal
+      services=(data.services||[]).map(s=>({ ...s }));
+      serviceIdCounter=services.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0)+1;
+  
+      staff=(data.staff||[]).map(p=>({ ...p, offers:{ ...(p.offers||{}) } }));
+      staffIdCounter=staff.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0)+1;
+  
+      renderServices();
+      renderStaff();
+  
+      // Si además coincide con un negocio guardado, marca estado
+      if (shopName.value && getBusinesses().some(b => b.slug===normalizeSlug(shopName.value))){
+        businessStatus.textContent='Negocio cargado';
+        businessStatus.className='badge badge-ok';
+      }
+    } else {
+      // Predeterminados iniciales
+      addServiceRow(createService('Corte', 30, ''));
+      addServiceRow(createService('Barba', 20, ''));
+      addServiceRow(createService('Corte y barba', 40, ''));
+      renderStaff(); // empieza vacío
+    }
+  
+    // Auto-guardado de sesión
+    document.querySelector('.container').addEventListener('input', debouncedSave);
+  });
+  </script>
+  
+</body>
+</html>

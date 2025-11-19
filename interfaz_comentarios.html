@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Comentarios</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --container-w: 900px;
+      --container-pad: 20px;
+      --container-bl: 4px;
+
+      --banner-h: 64px;
+      --page-sidepad: 16px;
+      --banner-bg: #e6e9ee;      /* gris nardo */
+      --banner-bg-hover: #d7dbe3;
+
+      --brand-blue:#5c6bc0;
+      --green:#66BB6A; --green-h:#57A05D;
+      --red:#f44336;   --red-h:#d32f2f;
+    }
+    body{
+      font-family:'Open Sans', sans-serif;
+      background:#eee; color:#333; margin:0; padding:20px;
+      padding-top: calc(var(--banner-h) + 8px);
+    }
+    .container{
+      max-width: var(--container-w); margin:auto;
+      background:#fff; border-radius:10px; padding:var(--container-pad);
+      box-shadow:0 4px 8px rgba(0,0,0,.05);
+      border-left: var(--container-bl) solid var(--brand-blue);
+    }
+
+    /* Banner fijo del mismo ancho que la tarjeta */
+    .app-banner{ position:fixed; top:0; left:0; right:0; height:var(--banner-h); z-index:9999; }
+    .app-banner .banner-box{
+      height:100%;
+      width:min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)),
+                calc(100% - var(--page-sidepad)*2));
+      margin:0 auto; background:var(--banner-bg);
+      border-bottom:1px solid rgba(0,0,0,.06); border-radius:10px;
+      display:flex; align-items:center; transition:background-color .2s ease;
+    }
+    .app-banner .banner-box:hover{ background:var(--banner-bg-hover); }
+    .banner-inner{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; width:100%; padding:0 12px; align-items:center; }
+    .banner-title{ justify-self:center; font-weight:700; color:#233247; }
+    .banner-logo{ justify-self:end; display:inline-flex; align-items:center; }
+    .banner-logo img{ width:52px; height:auto; }
+    .back-button{
+      display:inline-block; text-decoration:none; font-size:14px; color:var(--brand-blue);
+      padding:8px 12px; border:1px solid var(--brand-blue); border-radius:6px;
+      transition:.2s; justify-self:start;
+    }
+    .back-button:hover{ background:var(--brand-blue); color:#fff; }
+
+    h1{ text-align:center; margin:8px 0 18px; }
+
+    label{ display:block; margin:10px 0 6px; color:#003366; }
+    input[type="text"], select, textarea{
+      width:100%; padding:12px; border:2px solid #ddd; border-radius:6px; font-size:16px;
+      box-sizing:border-box; transition:border-color .2s;
+    }
+    textarea{ min-height:120px; resize:vertical; }
+    input:focus, select:focus, textarea:focus{ outline:none; border-color:#7da2a9; }
+
+    .row-inline{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+    .row-inline .grow{ flex:1 1 auto; }
+
+    /* Estrellas */
+    .stars{ display:flex; gap:8px; font-size:28px; user-select:none; }
+    .star{
+      width:34px; height:34px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+      border-radius:6px; border:1px solid transparent;
+    }
+    .star:hover{ transform:translateY(-1px); }
+    .star.is-on{ color:#f5a623; }
+    .star.is-off{ color:#c7c7c7; }
+
+    /* Botón principal (75% ancho aprox.) */
+    .btn-main{
+      display:block; width:min(680px, 75%); margin:18px auto 6px;
+      padding:14px 20px; border:none; border-radius:8px; color:#fff; background:var(--green);
+      font-weight:700; font-size:16px; cursor:pointer; transition:.2s;
+    }
+    .btn-main:hover{ background:var(--green-h); transform:translateY(-2px); }
+
+    .hint{ color:#666; font-size:13px; margin-top:4px; }
+    .badge{ display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; margin-left:8px; }
+    .badge.neg{ background:#ffe4e4; color:#b00020; }
+    .badge.neu{ background:#eef1f6; color:#445; }
+    .badge.pos{ background:#e9f7ef; color:#1b5e20; }
+
+    /* Mensaje */
+    .msg{ text-align:center; font-size:14px; margin-top:8px; }
+    .msg.ok{ color:#1b5e20; }
+    .msg.err{ color:#b00020; }
+
+    /* Legal fuera de la página */
+    .legal-outside{
+      margin:18px auto 24px; padding:10px 12px;
+      max-width: calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl));
+      text-align:center; color:#666; font-size:14px; line-height:1.35;
+    }
+
+    @media (max-width:768px){
+      .banner-title{ font-size:18px; }
+      .stars{ font-size:26px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Banner -->
+  <header class="app-banner" role="banner">
+    <div class="banner-box">
+      <div class="banner-inner">
+        <a href="#" class="back-button" onclick="history.back();return false;">&larr; Volver</a>
+        <div class="banner-title">Comentarios</div>
+        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Inicio">
+          <img src="LogoCitasYa.png" alt="Citas Ya" />
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Cuéntanos tu experiencia</h1>
+
+    <!-- 1. Nombre (opcional) -->
+    <label for="inpName">Tu nombre <span class="hint">(opcional)</span></label>
+    <input id="inpName" type="text" placeholder="Ej: Juan Pérez" />
+
+    <!-- 2. A quién va el comentario -->
+    <label for="selTarget">Selecciona a quién va dirigido</label>
+    <select id="selTarget">
+      <option value="pagina">A la página</option>
+      <option value="barberia">A una barbería</option>
+    </select>
+
+    <div id="targetBizWrap" style="display:none;">
+      <label for="inpBiz">Escribe el nombre de la barbería</label>
+      <input id="inpBiz" list="bizList" type="text" placeholder="Ej: Barbería Central" autocomplete="off"/>
+      <datalist id="bizList"></datalist>
+      <div class="hint">Se sugiere con base en barberías registradas.</div>
+    </div>
+
+    <!-- 3. Comentario -->
+    <label for="txtComment">Escribe tu comentario</label>
+    <textarea id="txtComment" placeholder="¿Qué te gustó o qué podemos mejorar?"></textarea>
+
+    <!-- 4 y 5. Calificación + Recomendar -->
+    <div class="row-inline" style="margin-top:10px;">
+      <div class="grow">
+        <label>Déjanos tu calificación</label>
+        <div id="starCtrl" class="stars" aria-label="Calificación de 1 a 5">
+          <span class="star" data-v="1">★</span>
+          <span class="star" data-v="2">★</span>
+          <span class="star" data-v="3">★</span>
+          <span class="star" data-v="4">★</span>
+          <span class="star" data-v="5">★</span>
+        </div>
+        <div id="sentBadge" class="hint"></div>
+      </div>
+      <div style="min-width:220px">
+        <label for="chkReco">¿Recomiendas la página?</label>
+        <div class="row-inline">
+          <input id="chkReco" type="checkbox"> <span>Sí, la recomiendo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Enviar -->
+    <button id="btnSend" class="btn-main">Enviar</button>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <div class="legal-outside">
+    Todos los derechos reservados © 2025<br>
+    Citas Ya S.A.S - Nit 810.000.000-0
+  </div>
+
+  <script>
+    /* ====== Constantes de almacenamiento ====== */
+    const LS_BIZ = 'cy_businesses';     // ya existente en el proyecto
+    const LS_COM = 'cy_comments';       // NUEVO: comentarios
+
+    /* ====== Autocompletar barberías ====== */
+    function loadBizDatalist(){
+      const dl = document.getElementById('bizList');
+      dl.innerHTML = '';
+      let all = [];
+      try { all = JSON.parse(localStorage.getItem(LS_BIZ)) || []; } catch(_){}
+      all.forEach(b=>{
+        const op = document.createElement('option');
+        op.value = b.name || '';
+        dl.appendChild(op);
+      });
+    }
+    loadBizDatalist();
+
+    /* ====== UI: estrellas ====== */
+    let currentRating = 0;
+    const starCtrl = document.getElementById('starCtrl');
+    const sentBadge = document.getElementById('sentBadge');
+
+    function paintStars(n){
+      starCtrl.querySelectorAll('.star').forEach(st=>{
+        const v = Number(st.dataset.v);
+        st.classList.toggle('is-on', v <= n);
+        st.classList.toggle('is-off', v > n);
+      });
+      // badge de sentimiento
+      let label = '', cls='';
+      if(n === 0 || n === 3){ label='Neutro'; cls='neu'; }
+      if(n === 1 || n === 2){ label='Malo'; cls='neg'; }
+      if(n === 4 || n === 5){ label='Muy bueno'; cls='pos'; }
+      sentBadge.innerHTML = n ? `<span class="badge ${cls}">${label}</span>` : '<span class="badge neu">Neutro</span>';
+    }
+    starCtrl.addEventListener('click', (e)=>{
+      const target = e.target.closest('.star'); if(!target) return;
+      currentRating = Number(target.dataset.v)||0;
+      paintStars(currentRating);
+    });
+    paintStars(0);
+
+    /* ====== Mostrar/ocultar campo barbería ====== */
+    const selTarget = document.getElementById('selTarget');
+    const targetBizWrap = document.getElementById('targetBizWrap');
+    selTarget.addEventListener('change', ()=>{
+      targetBizWrap.style.display = selTarget.value === 'barberia' ? 'block' : 'none';
+    });
+
+    /* ====== Guardar comentario ====== */
+    const byId = (id)=>document.getElementById(id);
+    const btnSend = byId('btnSend');
+    const msg = byId('msg');
+
+    btnSend.addEventListener('click', ()=>{
+      const name = (byId('inpName').value || '').trim();
+      const targetType = selTarget.value;               // 'pagina' | 'barberia'
+      const targetName = (byId('inpBiz').value || '').trim();
+      const comment = (byId('txtComment').value || '').trim();
+      const recommend = byId('chkReco').checked;
+
+      // Validaciones mínimas
+      if(targetType === 'barberia' && !targetName){
+        msg.className='msg err'; msg.textContent='Por favor escribe el nombre de la barbería.'; return;
+      }
+      if(!comment){
+        msg.className='msg err'; msg.textContent='Escribe tu comentario antes de enviar.'; return;
+      }
+      // rating puede ser 0 (neutro) => permitido
+
+      // Clasificación según rating
+      let sentiment = 'neutro';
+      if(currentRating===1 || currentRating===2) sentiment = 'negativo';
+      if(currentRating===4 || currentRating===5) sentiment = 'positivo';
+
+      // Normalizar destino
+      const to = (targetType === 'pagina')
+        ? { type:'pagina', id:'site', name:'Citas Ya' }
+        : { type:'barberia', id:(targetName||'').toLowerCase(), name: targetName };
+
+      const payload = {
+        id: 'cmt-' + Date.now(),
+        author: name ? name : 'Anonymous',
+        target: to,
+        text: comment,
+        rating: currentRating,       // 0..5
+        sentiment,                   // negativo|neutro|positivo
+        recommend,                   // true/false
+        createdAt: new Date().toISOString()
+      };
+
+      let all=[]; try{ all = JSON.parse(localStorage.getItem(LS_COM))||[]; }catch(_){}
+      all.unshift(payload); // más reciente primero
+      localStorage.setItem(LS_COM, JSON.stringify(all));
+
+      // Limpieza + feedback
+      byId('txtComment').value='';
+      currentRating = 0; paintStars(0);
+      byId('chkReco').checked=false;
+      msg.className='msg ok'; msg.textContent='¡Gracias! Tu comentario fue enviado.';
+    });
+
+    // Por si el usuario llega directo con ?target=barberia
+    (function initFromQuery(){
+      const params = new URLSearchParams(location.search);
+      const t = params.get('target');
+      if(t==='barberia'){ selTarget.value='barberia'; targetBizWrap.style.display='block'; }
+    })();
+  </script>
+</body>
+</html>

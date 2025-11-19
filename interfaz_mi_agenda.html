@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mi agenda</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --container-w: 920px;
+      --container-pad: 20px;
+      --container-bl: 4px;
+
+      --banner-h: 64px;
+      --page-sidepad: 16px;
+      --banner-bg: #e6e9ee;
+      --banner-bg-hover: #d7dbe3;
+    }
+    body{
+      font-family:'Open Sans',sans-serif;
+      background:#eeeeee;
+      margin:0;
+      padding:20px;
+      color:#333;
+      padding-top: calc(var(--banner-h) + 8px);
+    }
+    .container{
+      max-width: var(--container-w);
+      margin: 0 auto;
+      padding: var(--container-pad);
+      background:#fff;
+      border-radius:10px;
+      box-shadow:0 4px 8px rgba(0,0,0,.05);
+      border-left: var(--container-bl) solid #5c6bc0;
+    }
+    h1{ text-align:center; margin:0 0 8px; font-weight:700; }
+    h2{ margin:18px 0 8px; font-weight:700; color:#000; }
+    .muted{ color:#666; font-size:14px; }
+
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding:10px; border-bottom:1px solid #eee; text-align:left; }
+    th{ background:#f6f7fb; font-weight:700; color:#233247; }
+
+    .btn{
+      display:block; border:none; border-radius:6px; padding:12px 18px; color:#fff; font-weight:700; cursor:pointer;
+      transition: background-color .2s, transform .2s; width:100%; margin:10px 0; font-size:16px;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn-green{ background:#66bb6a; } .btn-green:hover{ background:#43a047; }
+    .btn-blue{  background:#5c6bc0; } .btn-blue:hover{  background:#3f51b5; }
+
+    .wide75{ width:75%; margin:12px auto; }
+    @media (max-width:768px){ .wide75{ width:100%; } }
+
+    /* Banner fijo del tamaño del card */
+    .app-banner{ position:fixed; top:0; left:0; right:0; height:var(--banner-h); z-index:9999; background:transparent; }
+    .app-banner .banner-box{
+      height:100%;
+      width:min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)), calc(100% - var(--page-sidepad)*2));
+      margin:0 auto; background:var(--banner-bg); border-bottom:1px solid rgba(0,0,0,.06); border-radius:10px;
+      display:flex; align-items:center; transition:background-color .2s ease;
+    }
+    .app-banner .banner-box:hover,.app-banner .banner-box:focus-within{ background:var(--banner-bg-hover); }
+    .app-banner .banner-inner{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:8px; width:100%; padding:0 12px; }
+    .banner-back{ justify-self:start; }
+    .banner-title{ justify-self:center; font-weight:700; color:#233247; }
+    .banner-logo{ justify-self:end; display:inline-flex; align-items:center; }
+    .banner-logo img{ width:52px; height:auto; display:block; }
+
+    .back-button{
+      display:inline-block; text-decoration:none; font-size:14px; color:#5c6bc0;
+      padding:8px 12px; border:1px solid #5c6bc0; border-radius:6px; transition: background-color .2s, color .2s;
+    }
+    .back-button:hover{ background:#5c6bc0; color:#fff; }
+
+    .legal-outside{
+      margin:18px auto 24px; padding:10px 12px;
+      max-width: calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl));
+      text-align:center; color:#666; font-size:14px; line-height:1.35;
+    }
+
+    .card{
+      border:1px dashed #cfd6e4; border-radius:8px; padding:12px; background:#fbfcff;
+    }
+    .grid-two{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:768px){ .grid-two{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <!-- Banner -->
+  <header class="app-banner" role="banner">
+    <div class="banner-box">
+      <div class="banner-inner">
+        <a href="interfaz_organizar_agenda.html" class="back-button banner-back">&larr; Volver</a>
+        <div class="banner-title">Mi agenda</div>
+        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
+          <img src="LogoCitasYa.png" alt="Citas Ya">
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1 id="welcome">Mi agenda</h1>
+
+    <!-- 4) Citas agendadas -->
+    <section>
+      <h2>Citas agendadas</h2>
+      <div class="card">
+        <table id="tblBookings">
+          <thead>
+            <tr>
+              <th>Asistente</th>
+              <th>Fecha</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Servicio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="muted">No hay citas para mostrar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5) Conectar con calendario virtual (ICS) -->
+    <section class="wide75" style="margin-top:6px;">
+      <button id="btnICS" class="btn btn-blue">Conectar con calendario virtual</button>
+    </section>
+
+    <!-- 2) Mi horario -->
+    <section>
+      <h2>Mi horario</h2>
+      <div id="scheduleView" class="card">
+        <div class="muted">No hay un horario publicado aún.</div>
+      </div>
+      <div class="muted" id="rangeInfo" style="margin-top:6px;"></div>
+    </section>
+
+    <!-- 3) Editar agenda -->
+    <section class="wide75">
+      <button id="btnEdit" class="btn btn-green">Editar agenda</button>
+    </section>
+
+  </div>
+
+  <!-- Legal -->
+  <div class="legal-outside">
+    Todos los derechos reservados © 2025<br>
+    Citas Ya S.A.S - Nit 810.000.000-0
+  </div>
+
+  <script>
+    /* ====== Constantes / helpers (mismos nombres del proyecto) ====== */
+    const LS_BIZ   = 'cy_businesses';
+    const LS_SCH   = 'cy_schedules';
+    const LS_BOOK  = 'cy_bookings';
+    const LS_CTX   = 'cy_lastAgendaView';   // { businessSlug, businessName, staffName }
+    const LS_EDIT  = 'cy_lastAgendaEdit';   // para precargar al editar
+
+    const $ = s => document.querySelector(s);
+    const pad2 = n => String(n).padStart(2,'0');
+
+    const get = (k,def=[])=>{ try{ return JSON.parse(localStorage.getItem(k))||def; }catch(_){ return def; } };
+    const set = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+    function formatDate(iso){
+      const d = new Date(iso + 'T00:00:00');
+      const y = d.getFullYear(), m = pad2(d.getMonth()+1), day=pad2(d.getDate());
+      return `${y}-${m}-${day}`;
+    }
+
+    /* ===== Cargar contexto ===== */
+    const ctx = get(LS_CTX, null);
+    const welcome = $('#welcome');
+
+    if(!ctx || !ctx.staffName){
+      welcome.textContent = 'Mi agenda';
+      alert('No se encontró el contexto de barbero. Vuelve desde “Organizar agenda”.');
+    } else {
+      welcome.textContent = `Bienvenido de nuevo, ${ctx.staffName}`;
+    }
+
+    const businesses = get(LS_BIZ, []);
+    const schedules  = get(LS_SCH, []);
+    const bookings   = get(LS_BOOK, []);
+
+    const biz = (()=>{
+      if(!ctx) return null;
+      if(ctx.businessSlug){
+        return businesses.find(b => (b.slug||'') === ctx.businessSlug) || null;
+      }
+      // por nombre si no hay slug
+      return businesses.find(b => (b.name||'').toLowerCase() === (ctx.businessName||'').toLowerCase()) || null;
+    })();
+
+    const businessName = biz ? biz.name : (ctx && ctx.businessName) || '';
+
+    /* ====== 4) PINTAR CITAS ====== */
+    function paintBookings(){
+      const tbody = document.querySelector('#tblBookings tbody');
+      tbody.innerHTML = '';
+      const mine = bookings
+        .filter(b => (!biz || b.businessSlug === (biz.slug||'')) && b.staffName === (ctx?.staffName||''))
+        .sort((a,b)=> (a.date+a.start) < (b.date+b.start) ? -1 : 1);
+
+      if(!mine.length){
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" class="muted">No hay citas para mostrar.</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+      mine.forEach(b=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${b.attendee || '-'}</td>
+          <td>${b.date}</td>
+          <td>${b.start}</td>
+          <td>${b.end}</td>
+          <td>${b.serviceName || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      return mine;
+    }
+
+    /* ====== 2) PINTAR HORARIO ====== */
+    function latestSchedule(){
+      if(!ctx) return null;
+      const arr = schedules.filter(s =>
+        (s.staffName||'') === (ctx.staffName||'') &&
+        (!biz || (s.businessSlug||'') === (biz.slug||''))
+      );
+      if(!arr.length) return null;
+      arr.sort((a,b)=> (a.createdAt||'') < (b.createdAt||'') ? -1 : 1);
+      return arr[arr.length-1];
+    }
+    function paintSchedule(){
+      const sc = latestSchedule();
+      const box = $('#scheduleView');
+      const range = $('#rangeInfo');
+      box.innerHTML = ''; range.textContent = '';
+
+      if(!sc || !Array.isArray(sc.schedule) || sc.schedule.length !== 7){
+        box.innerHTML = `<div class="muted">No hay un horario publicado aún.</div>`;
+        return;
+      }
+
+      const dayNames = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Día</th><th>Trabaja</th><th>Inicio</th><th>Fin</th><th>Almuerzo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const tb = table.querySelector('tbody');
+
+      sc.schedule.forEach((d, i)=>{
+        const lunch = (d.lunchStart && d.lunchEnd) ? `${d.lunchStart} – ${d.lunchEnd}` : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dayNames[i]}</td>
+          <td>${d.work ? 'Sí' : 'No'}</td>
+          <td>${d.work ? (d.start || '—') : '—'}</td>
+          <td>${d.work ? (d.end   || '—') : '—'}</td>
+          <td>${d.work ? lunch : '—'}</td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      box.appendChild(table);
+      if(sc.dateStart && sc.dateEnd){
+        range.textContent = `Rango de fechas: ${sc.dateStart} → ${sc.dateEnd}`;
+      }
+    }
+
+    /* ====== 3) EDITAR AGENDA (volver a organizar con contexto) ====== */
+    document.getElementById('btnEdit').addEventListener('click', ()=>{
+      if(!ctx){ alert('Falta el contexto de barbero.'); return; }
+      // Guardamos lo mismo que usa organizar agenda para precargar
+      set(LS_EDIT, {
+        businessSlug: biz ? (biz.slug||'') : (ctx.businessSlug||''),
+        businessName: businessName || (ctx.businessName||''),
+        staffName:    ctx.staffName || ''
+      });
+      window.location.href = 'interfaz_organizar_agenda.html';
+    });
+
+    /* ====== 5) ICS (calendario) ====== */
+    function toICSDate(dateIso, hhmm){ // YYYY-MM-DD + HH:MM -> YYYYMMDDTHHMM00
+      const [y,m,d] = dateIso.split('-').map(Number);
+      const [H,Mi]  = hhmm.split(':').map(Number);
+      return `${y}${pad2(m)}${pad2(d)}T${pad2(H)}${pad2(Mi)}00`;
+    }
+    function downloadICS(evts, filename='mi-agenda.ics'){
+      const nl = '\r\n';
+      let ics = 'BEGIN:VCALENDAR'+nl
+              + 'VERSION:2.0'+nl
+              + 'PRODID:-//CitasYa//Agenda//ES'+nl
+              + 'CALSCALE:GREGORIAN'+nl;
+
+      evts.forEach(e=>{
+        ics += 'BEGIN:VEVENT'+nl
+            +  `UID:${e.uid}`+nl
+            +  `DTSTAMP:${e.dtstamp}`+nl
+            +  `DTSTART:${e.dtstart}`+nl
+            +  `DTEND:${e.dtend}`+nl
+            +  `SUMMARY:${e.summary}`+nl
+            +  (e.location ? `LOCATION:${e.location}${nl}` : '')
+            +  (e.description ? `DESCRIPTION:${e.description.replace(/\n/g,'\\n')}${nl}` : '')
+            +  'END:VEVENT'+nl;
+      });
+      ics += 'END:VCALENDAR'+nl;
+
+      const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById('btnICS').addEventListener('click', ()=>{
+      const mine = bookings
+        .filter(b => (!biz || b.businessSlug === (biz.slug||'')) && b.staffName === (ctx?.staffName||''))
+        .sort((a,b)=> (a.date+a.start) < (b.date+b.start) ? -1 : 1);
+
+      if(!mine.length){ alert('No hay citas para exportar.'); return; }
+
+      const now = new Date();
+      const dtstamp = now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate())+'T'+pad2(now.getHours())+pad2(now.getMinutes())+'00';
+
+      const evts = mine.map(b=>({
+        uid: (b.id||Math.random().toString(36).slice(2))+'@citasya',
+        dtstamp,
+        dtstart: toICSDate(b.date, b.start),
+        dtend:   toICSDate(b.date, b.end),
+        summary: `Cita - ${b.serviceName||'Servicio'}`,
+        location: businessName || '',
+        description: `Asistente: ${b.attendee||'-'}\nBarbero: ${b.staffName||'-'}\nEstablecimiento: ${businessName||'-'}`
+      }));
+
+      const fname = `agenda-${(ctx?.staffName||'barbero').replace(/\s+/g,'_')}.ics`;
+      downloadICS(evts, fname);
+    });
+
+    // Pintar todo
+    paintBookings();
+    paintSchedule();
+  </script>
+</body>
+</html>

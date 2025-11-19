@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Programar una cita</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --container-w: 920px;
+      --container-pad: 20px;
+      --container-bl: 4px;
+
+      --banner-h: 64px;
+      --page-sidepad: 16px;
+      --banner-bg: #e6e9ee;
+      --banner-bg-hover: #d7dbe3;
+    }
+
+    body{
+      font-family: 'Open Sans', sans-serif;
+      background:#eeeeee;
+      margin:0;
+      padding:20px;
+      color:#333;
+      padding-top: calc(var(--banner-h) + 8px);
+    }
+    .container{
+      max-width: var(--container-w);
+      margin: 0 auto;
+      padding: var(--container-pad);
+      background:#fff;
+      border-radius:10px;
+      box-shadow:0 4px 8px rgba(0,0,0,.05);
+      border-left: var(--container-bl) solid #5c6bc0;
+    }
+    h1{ text-align:center; margin:0 0 14px; font-weight:700; color:#000; }
+    label{ display:block; margin:8px 0 4px; color:#003366; }
+    .muted{ color:#666; font-size:14px; }
+
+    input[type="text"], input[type="date"], select, textarea{
+      width:100%; padding:10px; border:2px solid #ddd; border-radius:6px; font-size:16px;
+      transition: border-color .2s; box-sizing:border-box;
+    }
+    input:focus, select:focus, textarea:focus{ outline:none; border-color:#7da2a9; }
+
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .two-btns{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .wide75{ width:75%; margin:12px auto; }
+    @media (max-width:768px){ .row, .two-btns, .wide75{ grid-template-columns:1fr; width:100%; } }
+
+    .btn{
+      display:block; border:none; border-radius:6px; padding:12px 18px; color:#fff; font-weight:700; cursor:pointer;
+      transition: background-color .2s, transform .2s; width:100%; margin:10px 0; font-size:16px;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn-green{ background:#66bb6a; } .btn-green:hover{ background:#43a047; }
+    .btn-blue{  background:#5c6bc0; } .btn-blue:hover{  background:#3f51b5; }
+    .btn-red{   background:#ef5350; } .btn-red:hover{   background:#e53935; }
+
+    /* Banner fijo del tamaño del card */
+    .app-banner{ position:fixed; top:0; left:0; right:0; height:var(--banner-h); z-index:9999; background:transparent; }
+    .app-banner .banner-box{
+      height:100%;
+      width:min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)), calc(100% - var(--page-sidepad)*2));
+      margin:0 auto; background:var(--banner-bg); border-bottom:1px solid rgba(0,0,0,.06); border-radius:10px;
+      display:flex; align-items:center; transition:background-color .2s ease;
+    }
+    .app-banner .banner-box:hover,.app-banner .banner-box:focus-within{ background:var(--banner-bg-hover); }
+    .app-banner .banner-inner{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:8px; width:100%; padding:0 12px; }
+    .banner-back{ justify-self:start; }
+    .banner-title{ justify-self:center; font-weight:700; color:#233247; }
+    .banner-logo{ justify-self:end; display:inline-flex; align-items:center; }
+    .banner-logo img{ width:52px; height:auto; display:block; }
+
+    .back-button{
+      display:inline-block; text-decoration:none; font-size:14px; color:#5c6bc0;
+      padding:8px 12px; border:1px solid #5c6bc0; border-radius:6px; transition: background-color .2s, color .2s;
+    }
+    .back-button:hover{ background:#5c6bc0; color:#fff; }
+
+    /* Footer legal fuera del card */
+    .legal-outside{
+      margin:18px auto 24px; padding:10px 12px;
+      max-width: calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl));
+      text-align:center; color:#666; font-size:14px; line-height:1.35;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Banner -->
+  <header class="app-banner" role="banner">
+    <div class="banner-box">
+      <div class="banner-inner">
+        <a href="#" class="back-button banner-back" onclick="history.back(); return false;">&larr; Volver</a>
+        <div class="banner-title">Programación de Citas</div>
+        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
+          <img src="LogoCitasYa.png" alt="Citas Ya">
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Programación de Citas</h1>
+
+    <!-- 1. Asistente -->
+    <section>
+      <label for="attendee">Ingrese nombre completo del asistente</label>
+      <input type="text" id="attendee" placeholder="Ej: Juan Martín Betancur">
+    </section>
+
+    <!-- 2–4. Barbería + “Buscar por mapa” -->
+    <section>
+      <label for="biz">Ingrese el nombre del establecimiento</label>
+      <input type="text" id="biz" list="businessList" placeholder="Ej: Barbería Central">
+      <datalist id="businessList"></datalist>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+        <label style="display:flex; align-items:center; gap:8px; margin:0;">
+          <input type="checkbox" id="dontKnow"> ¿No recuerda el nombre del establecimiento?
+        </label>
+        <button type="button" id="btnMap" class="btn btn-blue" style="width:auto; display:none; margin:0;">Buscar por mapa</button>
+      </div>
+      <small class="muted">La búsqueda ignora mayúsculas y acentos.</small>
+    </section>
+
+    <!-- 5. Servicio -->
+    <section>
+      <label for="service">Seleccione el servicio</label>
+      <select id="service" disabled>
+        <option value="">— Seleccione —</option>
+      </select>
+      <small class="muted" id="svcDur">Duración: —</small>
+    </section>
+
+    <!-- 5.1 Barbero -->
+    <section>
+      <label for="staff">Seleccione el barbero</label>
+      <select id="staff" disabled>
+        <option value="">— Seleccione —</option>
+      </select>
+    </section>
+
+    <!-- 6. Fecha y hora -->
+    <section>
+      <div class="row">
+        <div>
+          <label for="date">Seleccione la fecha de la cita</label>
+          <input type="date" id="date">
+        </div>
+        <div>
+          <label for="timeSel">Seleccione la hora de la cita</label>
+          <select id="timeSel" disabled>
+            <option value="">— Selecciona fecha, servicio y barbero —</option>
+          </select>
+          <small class="muted" id="timeHelp"></small>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Acciones -->
+    <section class="two-btns wide75">
+      <button id="btnSchedule" class="btn btn-green">Programar cita</button>
+      <button id="btnClear" class="btn btn-blue">Limpiar</button>
+    </section>
+
+    <!-- Resumen -->
+    <section>
+      <textarea id="summary" placeholder="Aquí verás el resumen de tu cita…" aria-label="Resumen" readonly></textarea>
+    </section>
+
+    <!-- 8. Comentarios / Cancelar -->
+    <section class="two-btns wide75">
+      <button type="button" id="btnComment" class="btn btn-blue">Déjanos tu comentario</button>
+      <button type="button" id="btnCancel" class="btn btn-red">Cancelar una cita</button>
+    </section>
+  </div>
+
+  <!-- Modal Buscar por mapa -->
+  <div id="modalMap" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:10000;">
+    <div style="background:#fff; width:min(900px,95%); border-radius:10px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0;">Buscar establecimiento</h3>
+        <button id="closeMap" class="btn btn-red" style="width:auto; margin:0;">Cerrar</button>
+      </div>
+      <p class="muted" style="margin-top:-6px;">Selecciona tu barbería de la lista o abre su ubicación en el mapa.</p>
+      <div id="bizList" style="display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center;"></div>
+      <p class="muted" style="margin-top:8px;">* “Ver en mapa” abre Google Maps con la ubicación registrada (si tiene lat/lng).</p>
+    </div>
+  </div>
+
+  <!-- Legal -->
+  <div class="legal-outside">
+    Todos los derechos reservados © 2025<br>
+    Citas Ya S.A.S - Nit 810.000.000-0
+  </div>
+
+<script>
+/* ===== Storage y utilidades ===== */
+const LS_BIZ = 'cy_businesses';
+const LS_SCH = 'cy_schedules';
+const LS_BOOKINGS = 'cy_bookings';
+const LS_APPT = 'cy_appointments';     // métricas de citas (scheduled/cancelled)
+
+const $ = s => document.querySelector(s);
+const plain = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+
+const getBusinesses = ()=>{ try{return JSON.parse(localStorage.getItem(LS_BIZ))||[]}catch(_){return[]} };
+const getSchedules  = ()=>{ try{return JSON.parse(localStorage.getItem(LS_SCH))||[]}catch(_){return[]} };
+const getBookings   = ()=>{ try{return JSON.parse(localStorage.getItem(LS_BOOKINGS))||[]}catch(_){return[]} };
+const saveBookings  = arr => localStorage.setItem(LS_BOOKINGS, JSON.stringify(arr));
+const getAppts      = ()=>{ try{return JSON.parse(localStorage.getItem(LS_APPT))||[]}catch(_){return[]} };
+const saveAppts     = arr => localStorage.setItem(LS_APPT, JSON.stringify(arr));
+
+const addMinutes = (hhmm, mins) => {
+  const [h,m]=hhmm.split(':').map(n=>parseInt(n,10));
+  const d=new Date(2000,0,1,h,m,0); d.setMinutes(d.getMinutes()+mins);
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+};
+const toMin = t => {const [h,m]=t.split(':').map(Number); return h*60+m};
+const overlap = (aS,aE,bS,bE)=> toMin(aS)<toMin(bE) && toMin(bS)<toMin(aE);
+
+/* ===== Controles ===== */
+const attendee = $('#attendee');
+
+const bizInput = $('#biz');
+const bizList  = $('#businessList');
+const dontKnow = $('#dontKnow');
+const btnMap   = $('#btnMap');
+const modalMap = $('#modalMap');
+const closeMap = $('#closeMap');
+const bizListModal = $('#bizList');
+
+const service = $('#service'); const svcDur = $('#svcDur');
+const staff   = $('#staff');
+const dateEl  = $('#date');
+const timeSel = $('#timeSel'); const timeHelp = $('#timeHelp');
+
+const btnSchedule = $('#btnSchedule');
+const btnClear    = $('#btnClear');
+const btnComment  = $('#btnComment');
+const btnCancel   = $('#btnCancel');
+const summary     = $('#summary');
+
+/* ===== Estado de selección ===== */
+let currentBiz=null;       // objeto negocio
+let currentService=null;   // objeto servicio
+let currentStaff='';       // nombre barbero
+
+/* ===== Datalist + modal mapa ===== */
+function refreshDatalist(){
+  bizList.innerHTML='';
+  getBusinesses().forEach(b=>{
+    const opt=document.createElement('option'); opt.value=b.name; bizList.appendChild(opt);
+  });
+}
+refreshDatalist();
+
+function openMap(){
+  const arr=getBusinesses();
+  bizListModal.innerHTML='';
+  if(!arr.length){ bizListModal.textContent='No hay establecimientos registrados.'; }
+  else{
+    arr.forEach(b=>{
+      const nameDiv=document.createElement('div');
+      nameDiv.innerHTML=`<strong>${b.name||'Sin nombre'}</strong><br><span class="muted">${b.address||''}</span>`;
+
+      const selBtn=document.createElement('button');
+      selBtn.className='btn btn-blue'; selBtn.style.width='auto'; selBtn.style.margin='0';
+      selBtn.textContent='Seleccionar';
+      selBtn.addEventListener('click',()=>{
+        bizInput.value=b.name||''; modalMap.style.display='none'; loadBusinessFromInput();
+      });
+
+      const mapBtn=document.createElement('a');
+      mapBtn.className='btn btn-green'; mapBtn.style.width='auto'; mapBtn.style.margin='0';
+      mapBtn.textContent='Ver en mapa';
+      const url = (b.lat && b.lng)
+        ? `https://www.google.com/maps?q=${b.lat},${b.lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.name||'')}`;
+      mapBtn.href=url; mapBtn.target='_blank';
+
+      bizListModal.appendChild(nameDiv);
+      bizListModal.appendChild(selBtn);
+      bizListModal.appendChild(mapBtn);
+    });
+  }
+  modalMap.style.display='flex';
+}
+btnMap.addEventListener('click', openMap);
+closeMap.addEventListener('click', ()=> modalMap.style.display='none');
+modalMap.addEventListener('click', e=>{ if(e.target===modalMap) modalMap.style.display='none'; });
+dontKnow.addEventListener('change', ()=>{ btnMap.style.display = dontKnow.checked ? 'inline-block' : 'none'; });
+
+/* ===== Cargar negocio/servicios/barberos ===== */
+function loadBusinessFromInput(){
+  const txt=plain(bizInput.value);
+  if(!txt){ currentBiz=null; disableServiceStaff(); return; }
+  const b=getBusinesses().find(x=>plain(x.name)===txt);
+  if(!b){ currentBiz=null; disableServiceStaff(); return; }
+  currentBiz=b;
+
+  // servicios
+  service.innerHTML='<option value="">— Seleccione —</option>';
+  (b.services||[]).sort((a,b)=>a.order-b.order).forEach(s=>{
+    const op=document.createElement('option');
+    op.value=s.id; op.textContent=`${s.name} (${s.durationMins} min)`; op.dataset.duration=s.durationMins;
+    service.appendChild(op);
+  });
+  service.disabled=false;
+
+  // barberos se cargan tras elegir servicio
+  staff.innerHTML='<option value="">— Seleccione —</option>';
+  staff.disabled=true;
+
+  currentService=null; currentStaff=''; svcDur.textContent='Duración: —';
+  buildTimeOptions();
+}
+function disableServiceStaff(){
+  service.innerHTML='<option value="">— Seleccione —</option>'; service.disabled=true;
+  staff.innerHTML  ='<option value="">— Seleccione —</option>'; staff.disabled=true;
+  currentService=null; currentStaff=''; svcDur.textContent='Duración: —';
+  buildTimeOptions();
+}
+bizInput.addEventListener('blur',   loadBusinessFromInput);
+bizInput.addEventListener('change', loadBusinessFromInput);
+bizInput.addEventListener('input', ()=>{ clearTimeout(bizInput._t); bizInput._t=setTimeout(loadBusinessFromInput,300); });
+
+service.addEventListener('change', ()=>{
+  const id=service.value;
+  if(!currentBiz || !id){ staff.disabled=true; staff.innerHTML='<option value="">— Seleccione —</option>'; currentService=null; buildTimeOptions(); return; }
+  const svc=(currentBiz.services||[]).find(s=>String(s.id)===String(id));
+  currentService=svc||null;
+  svcDur.textContent = svc ? `Duración: ${svc.durationMins} min` : 'Duración: —';
+
+  staff.innerHTML='<option value="">— Seleccione —</option>';
+  if(!svc){ staff.disabled=true; buildTimeOptions(); return; }
+  (currentBiz.staff||[]).forEach(p=>{
+    if(p && p.name && p.offers && p.offers[id]){
+      const op=document.createElement('option'); op.value=p.name; op.textContent=p.name; staff.appendChild(op);
+    }
+  });
+  staff.disabled=false;
+  buildTimeOptions();
+});
+staff.addEventListener('change', ()=>{ currentStaff=staff.value; buildTimeOptions(); });
+dateEl.addEventListener('change', buildTimeOptions);
+
+/* ===== Horario disponible (cy_schedules) ===== */
+function getScheduleBlockFor(dateISO){
+  if(!currentBiz || !currentStaff) return null;
+  const blocks=getSchedules().filter(b =>
+    (b.businessSlug||'')===(currentBiz.slug||'') &&
+    (b.staffName||'')===currentStaff &&
+    dateISO>=b.dateStart && dateISO<=b.dateEnd
+  );
+  if(!blocks.length) return null;
+  blocks.sort((a,b)=> (a.createdAt||'')<(b.createdAt||'')?-1:1);
+  return blocks[blocks.length-1];
+}
+function windowsFromDay(d){
+  if(!d||!d.work||!d.start||!d.end||d.start>=d.end) return [];
+  const base=[[d.start,d.end]];
+  if(d.lunchStart&&d.lunchEnd&&d.lunchStart<d.lunchEnd){
+    const out=[];
+    base.forEach(([a,b])=>{
+      if(d.lunchStart>a) out.push([a,Math.min(b,d.lunchStart)]);
+      if(d.lunchEnd<b)   out.push([Math.max(a,d.lunchEnd),b]);
+    });
+    return out.filter(([a,b])=>a<b);
+  }
+  return base;
+}
+function slotsFromWindows(wins,dur){
+  const s=[]; for(const [a,b] of wins){ let t=a; while(toMin(t)+dur<=toMin(b)){ s.push(t); t=addMinutes(t,10);} } return s;
+}
+function removeBooked(slots,dateISO,dur){
+  const books=getBookings().filter(b =>
+    b.businessSlug===(currentBiz.slug||'') &&
+    b.staffName===currentStaff && b.date===dateISO
+  );
+  return slots.filter(t=>{
+    const e=addMinutes(t,dur);
+    return !books.some(b=>overlap(t,e,b.start,b.end));
+  });
+}
+function buildTimeOptions(){
+  timeSel.innerHTML='<option value="">— Selecciona fecha, servicio y barbero —</option>';
+  timeSel.disabled=true; timeHelp.textContent='';
+  if(!currentService || !currentStaff || !dateEl.value) return;
+
+  const block=getScheduleBlockFor(dateEl.value);
+  if(!block){ timeHelp.textContent='Sin horario publicado para esa fecha.'; return; }
+
+  const jsIdx=(new Date(dateEl.value+'T00:00:00')).getDay(); // 0..6
+  const schedIdx=(jsIdx+6)%7; // Dom->6, Lun->0...
+  const day=Array.isArray(block.schedule)?block.schedule[schedIdx]:null;
+  if(!day){ timeHelp.textContent='Sin horario publicado para ese día.'; return; }
+  if(!day.work||!day.start||!day.end||day.start>=day.end){ timeHelp.textContent='Día no laborable.'; return; }
+
+  const wins=windowsFromDay(day);
+  const dur=Number(currentService.durationMins||0);
+  let slots=slotsFromWindows(wins,dur);
+  slots=removeBooked(slots,dateEl.value,dur);
+
+  if(!slots.length){ timeHelp.textContent='No hay horas disponibles para ese día.'; return; }
+  timeSel.innerHTML='<option value="">— Selecciona una hora —</option>';
+  slots.forEach(t=>{ const op=document.createElement('option'); op.value=t; op.textContent=t; timeSel.appendChild(op); });
+  timeSel.disabled=false;
+}
+
+/* ===== Resumen en vivo ===== */
+function updateSummary(){
+  const name=attendee.value.trim();
+  const businessName=currentBiz?currentBiz.name:'';
+  const svcName=currentService?currentService.name:'';
+  const staffName=currentStaff||'';
+  const date=dateEl.value||'';
+  const start=timeSel.value||'';
+  const end=(start&&currentService)?addMinutes(start,Number(currentService.durationMins||0)):'';
+  summary.value=
+    (name?`Asistente: ${name}\n`:``)+
+    (businessName?`Establecimiento: ${businessName}\n`:``)+
+    (svcName?`Servicio: ${svcName} (${currentService.durationMins} min)\n`:``)+
+    (staffName?`Barbero: ${staffName}\n`:``)+
+    (date?`Fecha: ${date}\n`:``)+
+    (start?`Hora: ${start} - ${end}`:``);
+}
+[attendee,bizInput,service,staff,dateEl,timeSel].forEach(el=>{
+  el.addEventListener('input',updateSummary);
+  el.addEventListener('change',updateSummary);
+});
+
+/* ===== Programar cita ===== */
+btnSchedule.addEventListener('click', ()=>{
+  const name=attendee.value.trim();
+  if(!name){ alert('Ingresa el nombre del asistente.'); return; }
+  if(!currentBiz){ alert('Selecciona un establecimiento válido.'); return; }
+  if(!currentService){ alert('Selecciona el servicio.'); return; }
+  if(!currentStaff){ alert('Selecciona el barbero.'); return; }
+  if(!dateEl.value){ alert('Selecciona la fecha.'); return; }
+  if(!timeSel.value){ alert('Selecciona la hora.'); return; }
+
+  const start=timeSel.value;
+  const end=addMinutes(start, Number(currentService.durationMins||0));
+
+  // evita choques
+  const same=getBookings().filter(b =>
+    b.businessSlug===(currentBiz.slug||'') && b.staffName===currentStaff && b.date===dateEl.value
+  );
+  if(same.some(b=>overlap(start,end,b.start,b.end))){
+    alert('Esa franja ya está ocupada. Elige otra hora.'); return;
+  }
+
+  // guarda booking
+  const bookings=getBookings();
+  const id='bk_'+Math.random().toString(36).slice(2,9);
+  const booking = {
+    id,
+    attendee:name,
+    businessSlug: currentBiz.slug||'',
+    businessName: currentBiz.name||'',
+    serviceId: currentService.id,
+    serviceName: currentService.name,
+    durationMins: Number(currentService.durationMins||0),
+    staffName: currentStaff,
+    date: dateEl.value,
+    start, end
+  };
+  bookings.push(booking);
+  saveBookings(bookings);
+
+  // guarda métrica (cy_appointments) — usamos el MISMO id para poder actualizar/cancelar
+  const appts=getAppts();
+  appts.push({
+    id,
+    attendee:name,
+    businessSlug: booking.businessSlug,
+    businessName: booking.businessName,
+    staffName: booking.staffName,
+    serviceName: booking.serviceName,
+    date: booking.date,
+    timeStart: booking.start,
+    timeEnd: booking.end,
+    status: 'scheduled',
+    createdAt: new Date().toISOString()
+  });
+  saveAppts(appts);
+
+  updateSummary();
+  alert('¡Cita programada con éxito!');
+});
+
+/* ===== Limpiar / ir a otras pantallas ===== */
+btnClear.addEventListener('click', ()=>{
+  attendee.value=''; bizInput.value=''; currentBiz=null;
+  disableServiceStaff();
+  dateEl.value=''; timeSel.innerHTML='<option value="">— Selecciona fecha, servicio y barbero —</option>'; timeSel.disabled=true; timeHelp.textContent='';
+  summary.value='';
+});
+btnComment.addEventListener('click', ()=>{ window.location.href='interfaz_comentarios.html'; });
+btnCancel.addEventListener('click',   ()=>{ window.location.href='interfaz_cancelar.html'; });
+
+/* init */
+(function(){ refreshDatalist(); updateSummary(); })();
+</script>
+
+</body>
+</html>

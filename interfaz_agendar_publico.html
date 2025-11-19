@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Programación de Citas — Acceso rápido</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --container-w: 920px;
+      --container-pad: 20px;
+      --container-bl: 4px;
+      --banner-h: 64px;
+      --page-sidepad: 16px;
+      --banner-bg:#e6e9ee; --banner-bg-hover:#d7dbe3;
+
+      /* Colores del proyecto */
+      --c-primary:#5c6bc0;      /* morado botones */
+      --c-primary-d:#3f51b5;
+      --c-green:#66BB6A;        /* programar */
+      --c-green-d:#57A05D;
+      --c-red:#EF5350;          /* cancelar */
+      --c-red-d:#D8433E;
+      --c-text:#003366;
+    }
+
+    body{
+      font-family:'Open Sans',sans-serif;
+      background:#eee;
+      margin:0;
+      padding:20px;
+      color:#333;
+      padding-top:calc(var(--banner-h) + 8px);
+    }
+    .container{
+      max-width:var(--container-w);
+      margin:auto;
+      padding:var(--container-pad);
+      background:#fff;
+      box-shadow:0 4px 8px rgba(0,0,0,.05);
+      border-radius:10px;
+      border-left:var(--container-bl) solid var(--c-primary);
+    }
+    h1{ text-align:center; font-size:30px; margin:.3rem 0 1.2rem; }
+    label{ display:block; margin:10px 0 6px; color:var(--c-text); }
+    input[type="text"], input[type="date"], select, textarea{
+      width:100%; box-sizing:border-box; padding:12px; border:2px solid #ddd; border-radius:6px; font-size:16px;
+    }
+    textarea{ min-height:84px; resize:vertical; }
+
+    /* Botones */
+    .btn{ display:inline-block; border:none; color:#fff; font-weight:700; padding:14px 18px; border-radius:6px; cursor:pointer; }
+    .w-75{ width:min(690px,75%); }
+    .btn-center{ display:block; margin:12px auto; }
+    .btn-pri{ background:var(--c-primary); }
+    .btn-pri:hover{ background:var(--c-primary-d); }
+    .btn-green{ background:var(--c-green); }
+    .btn-green:hover{ background:var(--c-green-d); }
+    .btn-red{ background:var(--c-red); }
+    .btn-red:hover{ background:var(--c-red-d); }
+
+    .row-2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; width:min(690px,75%); margin:12px auto; }
+    @media (max-width:680px){ .row-2{ grid-template-columns:1fr; width:100%; } .w-75{ width:100%; } }
+
+    .hint{ color:#666; font-size:14px; margin-top:6px; }
+
+    /* Banner (mismo ancho visual que el card) */
+    .app-banner{ position:fixed; top:0; left:0; right:0; height:var(--banner-h); z-index:9999; background:transparent; }
+    .app-banner .banner-box{
+      height:100%;
+      width:min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)), calc(100% - var(--page-sidepad)*2));
+      margin:0 auto; background:var(--banner-bg); border-bottom:1px solid rgba(0,0,0,.06); border-radius:10px;
+      display:flex; align-items:center; transition:background .2s;
+    }
+    .app-banner .banner-box:hover{ background:var(--banner-bg-hover); }
+    .app-banner .banner-inner{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; width:100%; padding:0 12px; }
+    .banner-title{ justify-self:center; font-weight:700; color:#233247; }
+    .banner-logo img{ width:52px; display:block; }
+    /* Menú hamburguesa */
+    .burger{ width:42px; height:42px; border-radius:8px; display:inline-grid; place-items:center; border:1px solid #bfc9d9; background:#fff; cursor:pointer; }
+    .burger span{ display:block; width:18px; height:2px; background:#333; margin:3px 0; }
+    .menu{ position:absolute; top:calc(var(--banner-h) - 6px); left:12px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.15); border-radius:10px; padding:8px; display:none; }
+    .menu a{ display:block; padding:10px 14px; border-radius:8px; color:#233247; text-decoration:none; font-weight:600; }
+    .menu a:hover{ background:#f2f4f8; }
+
+    /* Modal de acceso */
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:10000; }
+    .modal .box{ width:min(520px, 92vw); background:#fff; border-radius:12px; padding:18px; box-shadow:0 14px 38px rgba(0,0,0,.25); }
+    .modal h3{ margin:0 0 6px; }
+    .modal p{ margin:6px 0 12px; color:#444; }
+    .modal .actions{ display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+    .modal .actions .btn{ min-width:180px; }
+
+    /* Modal Buscar por mapa */
+    .map-modal{ position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:10000; }
+    .map-modal .box{ background:#fff; width:min(900px,95%); border-radius:10px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+    .map-grid{ display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center; }
+
+    /* Legal fuera del card */
+    .legal-outside{ margin:18px auto 24px; padding:10px 12px; max-width:calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)); text-align:center; color:#666; font-size:14px; line-height:1.35; }
+  </style>
+</head>
+<body>
+
+  <!-- Banner -->
+  <header class="app-banner" role="banner">
+    <div class="banner-box">
+      <div class="banner-inner">
+        <!-- Menú hamburguesa -->
+        <button id="btn_burger" class="burger" aria-label="Abrir menú">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="banner-title">Bienvenido a Citas Ya</div>
+        <a class="banner-logo" href="interfaz_inicio_s.html"><img src="LogoCitasYa.png" alt="Citas Ya"></a>
+
+        <!-- menú contextual -->
+        <nav id="menu" class="menu" aria-label="Menú rápido">
+          <a href="#" data-go="interfaz_login.html">Iniciar sesión</a>
+          <a href="#" data-go="interfaz_registro_cliente.html">Registrarme</a>
+          <a href="#" data-go="interfaz_registrar_negocio.html">Registrar mi negocio</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Programación de Citas</h1>
+
+    <label>Ingrese nombre completo del asistente</label>
+    <input type="text" id="asistente">
+
+    <!-- Barbería + “Buscar por mapa” -->
+    <label>Ingrese el nombre del establecimiento</label>
+    <input type="text" id="bizName" list="bizlist" placeholder="Escribe el nombre">
+    <datalist id="bizlist"></datalist>
+    <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+      <label style="display:flex; align-items:center; gap:8px; margin:0;">
+        <input type="checkbox" id="dontKnow"> ¿No recuerda el nombre del establecimiento?
+      </label>
+      <button type="button" id="btnMap" class="btn btn-pri" style="width:auto; display:none; margin:0;">Buscar por mapa</button>
+    </div>
+    <div class="hint">La búsqueda ignora mayúsculas y acentos.</div>
+
+    <!-- Servicio -->
+    <label>Seleccione el servicio</label>
+    <select id="servicio"><option value="">— Seleccione —</option></select>
+    <div id="duracionHint" class="hint">Duración: —</div>
+
+    <!-- Barbero -->
+    <label>Seleccione el barbero</label>
+    <select id="barbero"><option value="">— Seleccione —</option></select>
+
+    <!-- Fecha y hora (alineadas a agenda) -->
+    <div class="row-2">
+      <div>
+        <label>Seleccione la fecha de la cita</label>
+        <input type="date" id="fecha">
+      </div>
+      <div>
+        <label>Seleccione la hora de la cita</label>
+        <select id="timeSel" disabled>
+          <option value="">— Selecciona fecha, servicio y barbero —</option>
+        </select>
+        <div id="timeHelp" class="hint"></div>
+      </div>
+    </div>
+
+    <button id="btn_programar" class="btn btn-green w-75 btn-center">Programar cita</button>
+
+    <textarea id="resumen" class="w-75 btn-center" style="width:100%;min-height:68px;" placeholder="Aquí verás el resumen de tu cita…"></textarea>
+
+    <div class="row-2">
+      <button id="btn_comentario" class="btn btn-pri">Déjanos tu comentario</button>
+      <button id="btn_cancelar" class="btn btn-red">Cancelar una cita</button>
+    </div>
+
+    <p class="hint" style="text-align:center;margin-top:18px;">Reserva y gestiona tu agenda en minutos.</p>
+  </div>
+
+  <div class="legal-outside">
+    Todos los derechos reservados © 2025<br>
+    Citas Ya S.A.S - Nit 810.000.000-0
+  </div>
+
+  <!-- Modal de acceso -->
+  <div id="modalAuth" class="modal" role="dialog" aria-modal="true" aria-labelledby="ttlAuth">
+    <div class="box">
+      <h3 id="ttlAuth">Antes de continuar</h3>
+      <p>Para completar esta acción, por favor inicia sesión o regístrate.</p>
+      <div class="actions">
+        <button id="m_reg" class="btn btn-pri">Registrarme</button>
+        <button id="m_login" class="btn btn-green">Iniciar sesión</button>
+        <button id="m_close" class="btn btn-red">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Buscar por mapa -->
+  <div id="modalMap" class="map-modal" aria-modal="true" role="dialog">
+    <div class="box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0;">Buscar establecimiento</h3>
+        <button id="closeMap" class="btn btn-red" style="width:auto; margin:0;">Cerrar</button>
+      </div>
+      <p class="hint" style="margin-top:-6px;">Selecciona tu barbería de la lista o abre su ubicación en el mapa.</p>
+      <div id="bizList" class="map-grid"></div>
+      <p class="hint" style="margin-top:8px;">* “Ver en mapa” abre Google Maps con la ubicación registrada (si tiene lat/lng).</p>
+    </div>
+  </div>
+
+  <script>
+  /* ======================== Helpers y almacenamiento ===================== */
+  const LS_USERS   = 'cy_users';
+  const LS_SESS    = 'cy_session';
+  const LS_BIZ     = 'cy_businesses';
+  const LS_SCH     = 'cy_schedules';
+  const LS_BOOK    = 'cy_bookings';       // reservas (para choques)
+  const LS_APPTS   = 'cy_appointments';   // métricas (scheduled/cancelled)
+
+  const SS_RETURN  = 'cy_return_to';           // a cuál volver
+  const SS_PENDING = 'cy_pending_agenda_pub';  // estado temporal
+
+  const normalize = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                     .toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+
+  const get = (k,def)=>{ try{ return JSON.parse(localStorage.getItem(k)) ?? def; }catch{ return def; } };
+  const put = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+
+  const getBiz   = ()=> get(LS_BIZ, []);
+  const getSch   = ()=> get(LS_SCH, []);
+  const getBooks = ()=> get(LS_BOOK, []);
+  const putBooks = arr => put(LS_BOOK, arr);
+  const getAppts = ()=> get(LS_APPTS, []);
+  const putAppts = arr => put(LS_APPTS, arr);
+
+  const session = ()=>{ try{ return JSON.parse(localStorage.getItem(LS_SESS)); }catch{ return null; } };
+
+  const addMinutes = (hhmm, mins) => {
+    const [h,m]=hhmm.split(':').map(n=>parseInt(n,10));
+    const d=new Date(2000,0,1,h,m,0); d.setMinutes(d.getMinutes()+mins);
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  };
+  const toMin = t => {const [h,m]=t.split(':').map(Number); return h*60+m};
+  const overlap = (aS,aE,bS,bE)=> toMin(aS)<toMin(bE) && toMin(bS)<toMin(aE);
+
+  /* ============================= UI refs ================================ */
+  const asistente = document.getElementById('asistente');
+
+  const bizName  = document.getElementById('bizName');
+  const bizlist  = document.getElementById('bizlist');
+  const dontKnow = document.getElementById('dontKnow');
+  const btnMap   = document.getElementById('btnMap');
+  const modalMap = document.getElementById('modalMap');
+  const closeMap = document.getElementById('closeMap');
+  const bizListModal = document.getElementById('bizList');
+
+  const servicio = document.getElementById('servicio');
+  const duracionHint = document.getElementById('duracionHint');
+  const barbero = document.getElementById('barbero');
+
+  const fecha   = document.getElementById('fecha');
+  const timeSel = document.getElementById('timeSel');
+  const timeHelp= document.getElementById('timeHelp');
+
+  const resumen = document.getElementById('resumen');
+
+  /* ============================= Banner / menú ========================== */
+  const bBurger = document.getElementById('btn_burger');
+  const menu = document.getElementById('menu');
+  bBurger.addEventListener('click', e=>{
+    e.stopPropagation();
+    menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+  });
+  document.addEventListener('click', ()=> menu.style.display='none');
+  menu.querySelectorAll('a').forEach(a=>{
+    a.addEventListener('click', ev=>{
+      ev.preventDefault();
+      savePending(); // conserva lo llenado
+      sessionStorage.setItem(SS_RETURN, 'interfaz_agendar_publico.html');
+      window.location.href = a.dataset.go;
+    });
+  });
+
+  /* ============================ Modal acceso ============================ */
+  const m = document.getElementById('modalAuth');
+  function openModal(){ m.style.display='flex'; }
+  function closeModal(){ m.style.display='none'; }
+  document.getElementById('m_close').onclick = closeModal;
+  document.getElementById('m_login').onclick = ()=>{
+    savePending(); sessionStorage.setItem(SS_RETURN,'interfaz_agendar_publico.html');
+    window.location.href = 'interfaz_login.html';
+  };
+  document.getElementById('m_reg').onclick = ()=>{
+    savePending(); sessionStorage.setItem(SS_RETURN,'interfaz_agendar_publico.html');
+    window.location.href = 'interfaz_registro_cliente.html';
+  };
+
+  function ensureAuth(orRedirect=true){
+    const s = session();
+    if(s && s.user){ return true; }
+    if(orRedirect){
+      sessionStorage.setItem(SS_RETURN, 'interfaz_agendar_publico.html');
+      savePending();
+      openModal();
+    }
+    return false;
+  }
+
+  /* ============================ Datalist y mapa ========================= */
+  function buildBizList(){
+    bizlist.innerHTML='';
+    getBiz().forEach(b=>{ const op=document.createElement('option'); op.value=b.name; bizlist.appendChild(op); });
+  }
+  function openMap(){
+    const arr=getBiz();
+    bizListModal.innerHTML='';
+    if(!arr.length){ bizListModal.textContent='No hay establecimientos registrados.'; }
+    else{
+      arr.forEach(b=>{
+        const nameDiv=document.createElement('div');
+        nameDiv.innerHTML=`<strong>${b.name||'Sin nombre'}</strong><br><span class="hint">${b.address||''}</span>`;
+
+        const selBtn=document.createElement('button');
+        selBtn.className='btn btn-pri'; selBtn.style.width='auto'; selBtn.style.margin='0';
+        selBtn.textContent='Seleccionar';
+        selBtn.addEventListener('click',()=>{
+          bizName.value=b.name||''; modalMap.style.display='none';
+          populateServiceAndBarber(bizName.value); savePending();
+        });
+
+        const mapBtn=document.createElement('a');
+        mapBtn.className='btn btn-green'; mapBtn.style.width='auto'; mapBtn.style.margin='0';
+        mapBtn.textContent='Ver en mapa';
+        const url=(b.lat&&b.lng)
+          ? `https://www.google.com/maps?q=${b.lat},${b.lng}`
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.name||'')}`;
+        mapBtn.href=url; mapBtn.target='_blank';
+
+        bizListModal.appendChild(nameDiv);
+        bizListModal.appendChild(selBtn);
+        bizListModal.appendChild(mapBtn);
+      });
+    }
+    modalMap.style.display='flex';
+  }
+  btnMap.addEventListener('click', openMap);
+  closeMap.addEventListener('click', ()=> modalMap.style.display='none');
+  modalMap.addEventListener('click', e=>{ if(e.target===modalMap) modalMap.style.display='none'; });
+  dontKnow.addEventListener('change', ()=>{ btnMap.style.display = dontKnow.checked ? 'inline-block' : 'none'; });
+
+  /* ====== Servicios y barberos según negocio ====== */
+  function populateServiceAndBarber(name, preSvc='', preBar=''){
+    const match = getBiz().find(b=> normalize(b.name)===normalize(name) );
+    servicio.innerHTML = '<option value="">— Seleccione —</option>';
+    barbero.innerHTML  = '<option value="">— Seleccione —</option>';
+    duracionHint.textContent='Duración: —';
+
+    if(!match){ timeSel.disabled=true; timeSel.innerHTML='<option value="">— Selecciona fecha, servicio y barbero —</option>'; timeHelp.textContent=''; return; }
+
+    (match.services||[]).forEach(s=>{
+      const op=document.createElement('option');
+      op.value=s.id; op.textContent=`${s.name} (${s.durationMins} min)`; op.dataset.duration=s.durationMins;
+      servicio.appendChild(op);
+    });
+    (match.staff||[]).forEach(p=>{
+      const op=document.createElement('option'); op.value=p.name; op.textContent=p.name; barbero.appendChild(op);
+    });
+
+    if(preSvc){ servicio.value=preSvc; }
+    if(preBar){ barbero.value=preBar; }
+    setDurationHintFromService();
+    buildTimeOptions();
+  }
+  function setDurationHintFromService(){
+    const dur = servicio.options[servicio.selectedIndex]?.dataset.duration || '';
+    duracionHint.textContent = dur ? `Duración: ${dur} min` : 'Duración: —';
+  }
+
+  bizName.addEventListener('change', e=>{ populateServiceAndBarber(e.target.value); savePending(); });
+  servicio.addEventListener('change', ()=>{ setDurationHintFromService(); buildTimeOptions(); savePending(); });
+  barbero.addEventListener('change', ()=>{ buildTimeOptions(); savePending(); });
+  fecha.addEventListener('change', ()=>{ buildTimeOptions(); savePending(); });
+  asistente.addEventListener('input', savePending);
+
+  /* ====== Horario disponible (igual que en agendar principal) ====== */
+  function getScheduleBlockFor(dateISO){
+    const all = getBiz();
+    const match = all.find(b=> normalize(b.name)===normalize(bizName.value) );
+    if(!match || !barbero.value) return null;
+
+    const blocks=getSch().filter(b =>
+      (b.businessSlug||'')===(match.slug||'') &&
+      (b.staffName||'')===barbero.value &&
+      dateISO>=b.dateStart && dateISO<=b.dateEnd
+    );
+    if(!blocks.length) return null;
+    blocks.sort((a,b)=> (a.createdAt||'')<(b.createdAt||'')?-1:1);
+    return blocks[blocks.length-1];
+  }
+  function windowsFromDay(d){
+    if(!d||!d.work||!d.start||!d.end||d.start>=d.end) return [];
+    const base=[[d.start,d.end]];
+    if(d.lunchStart&&d.lunchEnd&&d.lunchStart<d.lunchEnd){
+      const out=[];
+      base.forEach(([a,b])=>{
+        if(d.lunchStart>a) out.push([a,Math.min(b,d.lunchStart)]);
+        if(d.lunchEnd<b)   out.push([Math.max(a,d.lunchEnd),b]);
+      });
+      return out.filter(([a,b])=>a<b);
+    }
+    return base;
+  }
+  function slotsFromWindows(wins,dur){
+    const s=[]; for(const [a,b] of wins){ let t=a; while(toMin(t)+dur<=toMin(b)){ s.push(t); t=addMinutes(t,10);} } return s;
+  }
+  function removeBooked(slots,dateISO,dur, bizSlug, staffName){
+    const books=getBooks().filter(b =>
+      b.businessSlug===bizSlug && b.staffName===staffName && b.date===dateISO
+    );
+    return slots.filter(t=>{
+      const e=addMinutes(t,dur);
+      return !books.some(b=>overlap(t,e,b.start,b.end));
+    });
+  }
+  function buildTimeOptions(){
+    timeSel.innerHTML='<option value="">— Selecciona fecha, servicio y barbero —</option>';
+    timeSel.disabled=true; timeHelp.textContent='';
+
+    if(!bizName.value || !servicio.value || !barbero.value || !fecha.value) return;
+
+    const all = getBiz();
+    const match = all.find(b=> normalize(b.name)===normalize(bizName.value) );
+    if(!match){ timeHelp.textContent='Establecimiento no encontrado.'; return; }
+
+    const block=getScheduleBlockFor(fecha.value);
+    if(!block){ timeHelp.textContent='Sin horario publicado para esa fecha.'; return; }
+
+    const jsIdx=(new Date(fecha.value+'T00:00:00')).getDay(); // 0..6
+    const schedIdx=(jsIdx+6)%7; // Dom->6, Lun->0...
+    const day=Array.isArray(block.schedule)?block.schedule[schedIdx]:null;
+    if(!day){ timeHelp.textContent='Sin horario publicado para ese día.'; return; }
+    if(!day.work||!day.start||!day.end||day.start>=day.end){ timeHelp.textContent='Día no laborable.'; return; }
+
+    const wins=windowsFromDay(day);
+    const dur=Number(servicio.options[servicio.selectedIndex]?.dataset.duration||0);
+    let slots=slotsFromWindows(wins,dur);
+    slots=removeBooked(slots,fecha.value,dur, match.slug||'', barbero.value);
+
+    if(!slots.length){ timeHelp.textContent='No hay horas disponibles para ese día.'; return; }
+    timeSel.innerHTML='<option value="">— Selecciona una hora —</option>';
+    slots.forEach(t=>{ const op=document.createElement('option'); op.value=t; op.textContent=t; timeSel.appendChild(op); });
+    timeSel.disabled=false;
+  }
+
+  /* ====== Guardar/restaurar estado mientras inicia sesión ============ */
+  function savePending(){
+    const data = {
+      asistente: asistente.value.trim(),
+      biz:       bizName.value.trim(),
+      servicio:  servicio.value,
+      barbero:   barbero.value,
+      fecha:     fecha.value,
+      hora:      timeSel.value
+    };
+    sessionStorage.setItem(SS_PENDING, JSON.stringify(data));
+  }
+  function restorePending(){
+    const raw = sessionStorage.getItem(SS_PENDING);
+    if(!raw) return;
+    try{
+      const d = JSON.parse(raw);
+      asistente.value = d.asistente||'';
+      bizName.value   = d.biz||'';
+      if(d.biz) populateServiceAndBarber(d.biz, d.servicio, d.barbero);
+      fecha.value     = d.fecha||'';
+      if(d.hora){ timeSel.value = d.hora; }
+    }catch{}
+  }
+
+  /* ============================ Programar / Cancelar =================== */
+  function calcEnd(hhmm, add){
+    const [h,m]=hhmm.split(':').map(n=>+n);
+    const t = new Date(2000,0,1,h,m); t.setMinutes(t.getMinutes()+Number(add||0));
+    const hh = String(t.getHours()).padStart(2,'0');
+    const mm = String(t.getMinutes()).padStart(2,'0');
+    return `${hh}:${mm}`;
+  }
+
+  function programar(){
+    if(!ensureAuth(true)) return; // abre modal si no está logueado
+
+    // Validaciones mínimas
+    const asist = asistente.value.trim();
+    const biz   = bizName.value.trim();
+    const svcId = servicio.value;
+    const barb  = barbero.value;
+    const f     = fecha.value;
+    const h     = timeSel.value;
+    const dur   = Number(servicio.options[servicio.selectedIndex]?.dataset.duration||0);
+
+    if(!asist||!biz||!svcId||!barb||!f||!h){ alert('Completa todos los campos.'); return; }
+
+    const match = getBiz().find(b=> normalize(b.name)===normalize(biz) );
+    if(!match){ alert('Establecimiento inválido.'); return; }
+
+    // Evita choques
+    const same=getBooks().filter(b => b.businessSlug===(match.slug||'') && b.staffName===barb && b.date===f);
+    if(same.some(b=>overlap(h, calcEnd(h,dur), b.start, b.end))){
+      alert('Esa franja ya está ocupada. Elige otra hora.'); return;
+    }
+
+    // Guarda booking
+    const bookings=getBooks();
+    const id='bk_'+Math.random().toString(36).slice(2,9);
+    const booking = {
+      id,
+      attendee:asist,
+      businessSlug: match.slug||'',
+      businessName: match.name||'',
+      serviceId: svcId,
+      serviceName: (match.services||[]).find(s=>String(s.id)===String(svcId))?.name || '',
+      durationMins: dur,
+      staffName: barb,
+      date: f,
+      start: h,
+      end: calcEnd(h,dur)
+    };
+    bookings.push(booking);
+    putBooks(bookings);
+
+    // Métrica
+    const appts=getAppts();
+    appts.push({
+      id,
+      attendee:asist,
+      businessSlug: booking.businessSlug,
+      businessName: booking.businessName,
+      staffName: booking.staffName,
+      serviceName: booking.serviceName,
+      date: booking.date,
+      timeStart: booking.start,
+      timeEnd: booking.end,
+      status: 'scheduled',
+      createdAt: new Date().toISOString()
+    });
+    putAppts(appts);
+
+    resumen.value =
+`Asistente: ${asist}
+Establecimiento: ${booking.businessName}
+Servicio: ${booking.serviceName}
+Barbero: ${booking.staffName}
+Fecha: ${booking.date}
+Hora: ${booking.start} - ${booking.end}`;
+
+    sessionStorage.removeItem(SS_PENDING);
+    alert('¡Cita programada!');
+  }
+
+  function cancelar(){
+    if(!ensureAuth(true)) return;
+    savePending();
+    sessionStorage.setItem('cy_cancel_prefill', JSON.stringify({ customer: asistente.value.trim() }));
+    window.location.href = 'interfaz_cancelar.html';
+  }
+
+  document.getElementById('btn_programar').addEventListener('click', programar);
+  document.getElementById('btn_cancelar').addEventListener('click', cancelar);
+  document.getElementById('btn_comentario').addEventListener('click', ()=>{ window.location.href='interfaz_comentarios.html'; });
+
+  /* =============================== Init =============================== */
+  buildBizList();
+  restorePending();
+
+  // Si venimos recién logueados y somos cliente, permitir continuar.
+  (function afterLogin(){
+    const s = session();
+    const back = sessionStorage.getItem(SS_RETURN);
+    if(s && s.user && back==='interfaz_agendar_publico.html'){
+      // si el rol no es cliente, llévalo a su interfaz
+      if(s.user.role==='barbero'){ sessionStorage.removeItem(SS_RETURN); window.location.href='interfaz_organizar_agenda.html'; return; }
+      if(s.user.role==='admin'){   sessionStorage.removeItem(SS_RETURN); window.location.href='interfaz_admin.html'; return; }
+      sessionStorage.removeItem(SS_RETURN);
+    }
+  })();
+  </script>
+</body>
+</html>
