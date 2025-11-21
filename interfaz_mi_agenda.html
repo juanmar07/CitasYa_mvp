@@ -150,172 +150,314 @@
     Citas Ya S.A.S - Nit 810.000.000-0
   </div>
 
-  <script>
-    /* ====== Constantes / helpers (mismos nombres del proyecto) ====== */
-    const LS_BIZ   = 'cy_businesses';
-    const LS_SCH   = 'cy_schedules';
-    const LS_BOOK  = 'cy_bookings';
-    const LS_CTX   = 'cy_lastAgendaView';   // { businessSlug, businessName, staffName }
-    const LS_EDIT  = 'cy_lastAgendaEdit';   // para precargar al editar
+  <script type="module">
+    import { supabase } from './supabaseClient.js';
+    import { cargarSesionLocal, redirigirSegunRol } from './dataCitasYa.js';
 
     const $ = s => document.querySelector(s);
-    const pad2 = n => String(n).padStart(2,'0');
+    const pad2 = n => String(n).padStart(2, '0');
 
-    const get = (k,def=[])=>{ try{ return JSON.parse(localStorage.getItem(k))||def; }catch(_){ return def; } };
-    const set = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+    const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 
-    function formatDate(iso){
-      const d = new Date(iso + 'T00:00:00');
-      const y = d.getFullYear(), m = pad2(d.getMonth()+1), day=pad2(d.getDate());
-      return `${y}-${m}-${day}`;
-    }
+    const welcome      = $('#welcome');
+    const tblBody      = document.querySelector('#tblBookings tbody');
+    const scheduleView = $('#scheduleView');
+    const rangeInfo    = $('#rangeInfo');
+    const btnEdit      = $('#btnEdit');
+    const btnICS       = $('#btnICS');
 
-    /* ===== Cargar contexto ===== */
-    const ctx = get(LS_CTX, null);
-    const welcome = $('#welcome');
+    // ctx que viene de interfaz_organizar_agenda (sessionStorage)
+    const CTX_KEY = 'cy_lastAgendaView';
 
-    if(!ctx || !ctx.staffName){
-      welcome.textContent = 'Mi agenda';
-      alert('No se encontró el contexto de barbero. Vuelve desde “Organizar agenda”.');
-    } else {
-      welcome.textContent = `Bienvenido de nuevo, ${ctx.staffName}`;
-    }
+    let ctx = null;          // { negocio_id, negocio_nombre, personal_id, personal_nombre }
+    let citasEnMemoria = []; // citas enriquecidas para ICS
 
-    const businesses = get(LS_BIZ, []);
-    const schedules  = get(LS_SCH, []);
-    const bookings   = get(LS_BOOK, []);
-
-    const biz = (()=>{
-      if(!ctx) return null;
-      if(ctx.businessSlug){
-        return businesses.find(b => (b.slug||'') === ctx.businessSlug) || null;
+    function leerContextoAgenda() {
+      try {
+        const raw = sessionStorage.getItem(CTX_KEY);
+        ctx = raw ? JSON.parse(raw) : null;
+      } catch {
+        ctx = null;
       }
-      // por nombre si no hay slug
-      return businesses.find(b => (b.name||'').toLowerCase() === (ctx.businessName||'').toLowerCase()) || null;
-    })();
+    }
 
-    const businessName = biz ? biz.name : (ctx && ctx.businessName) || '';
+    function setWelcome() {
+      if (ctx && ctx.personal_nombre) {
+        welcome.textContent = `Bienvenido de nuevo, ${ctx.personal_nombre}`;
+      } else {
+        welcome.textContent = 'Mi agenda';
+      }
+    }
 
-    /* ====== 4) PINTAR CITAS ====== */
-    function paintBookings(){
-      const tbody = document.querySelector('#tblBookings tbody');
-      tbody.innerHTML = '';
-      const mine = bookings
-        .filter(b => (!biz || b.businessSlug === (biz.slug||'')) && b.staffName === (ctx?.staffName||''))
-        .sort((a,b)=> (a.date+a.start) < (b.date+b.start) ? -1 : 1);
+    function formatHoraDesdeTS(ts) {
+      if (!ts) return '—';
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return '—';
+      return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    }
 
-      if(!mine.length){
-        const tr=document.createElement('tr');
-        tr.innerHTML = `<td colspan="5" class="muted">No hay citas para mostrar.</td>`;
-        tbody.appendChild(tr);
+    function formatFechaISO(d) {
+      if (!d) return '';
+      // Supabase ya envía 'YYYY-MM-DD' para DATE; lo dejamos igual
+      return d;
+    }
+
+    async function asegurarContextoDesdeBD(sesion) {
+      if (ctx && ctx.negocio_id && ctx.personal_id) return;
+
+      // No hay contexto: deducimos a partir de 'personal' para este usuario
+      const { data: personalRows, error } = await supabase
+        .from('personal')
+        .select('id, nombre_publico, negocio:negocio_id (id, nombre)')
+        .eq('usuario_id', sesion.usuario_id)
+        .eq('activo', true);
+
+      if (error) {
+        console.error('Error cargando personal para contexto:', error);
+        alert('Ocurrió un error al cargar tu información de agenda.');
         return;
       }
-      mine.forEach(b=>{
+
+      if (!personalRows || personalRows.length === 0) {
+        alert('Tu usuario aún no está vinculado a ningún negocio. Pide al administrador que te asocie.');
+        return;
+      }
+
+      const p = personalRows[0];
+      if (!p.negocio) {
+        alert('No se pudo identificar el negocio asociado a tu usuario.');
+        return;
+      }
+
+      ctx = {
+        negocio_id: p.negocio.id,
+        negocio_nombre: p.negocio.nombre,
+        personal_id: p.id,
+        personal_nombre: p.nombre_publico
+      };
+
+      try {
+        sessionStorage.setItem(CTX_KEY, JSON.stringify(ctx));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    async function cargarCitas() {
+      tblBody.innerHTML = '';
+      citasEnMemoria = [];
+
+      if (!ctx || !ctx.negocio_id || !ctx.personal_id) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" class="muted">No hay citas para mostrar.</td>`;
+        tblBody.appendChild(tr);
+        return;
+      }
+
+      // Citas activas: pendiente, confirmada, reprogramada (1,2,3 en estado_cita)
+      const { data: citas, error } = await supabase
+        .from('citas')
+        .select('id, fecha, inicia_en, termina_en, usuario_cliente_id, nombre_invitado, servicio_id, estado_id')
+        .eq('negocio_id', ctx.negocio_id)
+        .eq('personal_id', ctx.personal_id)
+        .in('estado_id', [1, 2, 3])
+        .order('fecha', { ascending: true })
+        .order('inicia_en', { ascending: true });
+
+      if (error) {
+        console.error('Error cargando citas:', error);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" class="muted">Ocurrió un error al cargar las citas.</td>`;
+        tblBody.appendChild(tr);
+        return;
+      }
+
+      if (!citas || citas.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="5" class="muted">No hay citas para mostrar.</td>`;
+        tblBody.appendChild(tr);
+        return;
+      }
+
+      // Mapear servicios y usuarios para mostrar nombres
+      const servicioIds = [...new Set(citas.map(c => c.servicio_id).filter(id => id != null))];
+      const usuarioIds  = [...new Set(citas.map(c => c.usuario_cliente_id).filter(id => id != null))];
+
+      const servicioMap = {};
+      const usuarioMap  = {};
+
+      if (servicioIds.length) {
+        const { data: servicios, error: servErr } = await supabase
+          .from('servicios')
+          .select('id, nombre')
+          .in('id', servicioIds);
+        if (!servErr && servicios) {
+          servicios.forEach(s => { servicioMap[s.id] = s.nombre; });
+        }
+      }
+
+      if (usuarioIds.length) {
+        const { data: usuarios, error: usuErr } = await supabase
+          .from('usuarios')
+          .select('id, nombre_completo')
+          .in('id', usuarioIds);
+        if (!usuErr && usuarios) {
+          usuarios.forEach(u => { usuarioMap[u.id] = u.nombre_completo; });
+        }
+      }
+
+      citas.forEach(c => {
+        const fecha  = formatFechaISO(c.fecha);
+        const inicio = formatHoraDesdeTS(c.inicia_en);
+        const fin    = formatHoraDesdeTS(c.termina_en);
+
+        let asistente = '-';
+        if (c.usuario_cliente_id && usuarioMap[c.usuario_cliente_id]) {
+          asistente = usuarioMap[c.usuario_cliente_id];
+        } else if (c.nombre_invitado) {
+          asistente = c.nombre_invitado;
+        }
+
+        const servicioNombre = servicioMap[c.servicio_id] || 'Servicio';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${b.attendee || '-'}</td>
-          <td>${b.date}</td>
-          <td>${b.start}</td>
-          <td>${b.end}</td>
-          <td>${b.serviceName || '-'}</td>
+          <td>${asistente}</td>
+          <td>${fecha}</td>
+          <td>${inicio}</td>
+          <td>${fin}</td>
+          <td>${servicioNombre}</td>
         `;
-        tbody.appendChild(tr);
+        tblBody.appendChild(tr);
+
+        citasEnMemoria.push({
+          id: c.id,
+          fecha,
+          inicio,
+          fin,
+          asistente,
+          servicioNombre
+        });
       });
-      return mine;
     }
 
-    /* ====== 2) PINTAR HORARIO ====== */
-    function latestSchedule(){
-      if(!ctx) return null;
-      const arr = schedules.filter(s =>
-        (s.staffName||'') === (ctx.staffName||'') &&
-        (!biz || (s.businessSlug||'') === (biz.slug||''))
-      );
-      if(!arr.length) return null;
-      arr.sort((a,b)=> (a.createdAt||'') < (b.createdAt||'') ? -1 : 1);
-      return arr[arr.length-1];
-    }
-    function paintSchedule(){
-      const sc = latestSchedule();
-      const box = $('#scheduleView');
-      const range = $('#rangeInfo');
-      box.innerHTML = ''; range.textContent = '';
+    async function cargarHorario() {
+      scheduleView.innerHTML = '<div class="muted">No hay un horario publicado aún.</div>';
+      rangeInfo.textContent = '';
 
-      if(!sc || !Array.isArray(sc.schedule) || sc.schedule.length !== 7){
-        box.innerHTML = `<div class="muted">No hay un horario publicado aún.</div>`;
+      if (!ctx || !ctx.negocio_id || !ctx.personal_id) return;
+
+      const { data: conjuntos, error } = await supabase
+        .from('conjunto_horario')
+        .select('id, fecha_inicio, fecha_fin, creado_en')
+        .eq('negocio_id', ctx.negocio_id)
+        .eq('personal_id', ctx.personal_id)
+        .order('creado_en', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error cargando conjunto_horario:', error);
         return;
       }
 
-      const dayNames = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+      if (!conjuntos || conjuntos.length === 0) {
+        return;
+      }
+
+      const conjunto = conjuntos[0];
+
+      const { data: dias, error: diasErr } = await supabase
+        .from('dia_horario')
+        .select('dia_id, trabaja, hora_inicio, hora_fin, almuerzo_inicio, almuerzo_fin')
+        .eq('conjunto_horario_id', conjunto.id)
+        .order('dia_id', { ascending: true });
+
+      if (diasErr) {
+        console.error('Error cargando dia_horario:', diasErr);
+        return;
+      }
+
+      if (!dias || dias.length === 0) {
+        return;
+      }
+
+      const porDia = {};
+      dias.forEach(d => { porDia[d.dia_id] = d; });
+
       const table = document.createElement('table');
       table.innerHTML = `
         <thead>
           <tr>
-            <th>Día</th><th>Trabaja</th><th>Inicio</th><th>Fin</th><th>Almuerzo</th>
+            <th>Día</th>
+            <th>Trabaja</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th>Almuerzo</th>
           </tr>
         </thead>
         <tbody></tbody>
       `;
       const tb = table.querySelector('tbody');
 
-      sc.schedule.forEach((d, i)=>{
-        const lunch = (d.lunchStart && d.lunchEnd) ? `${d.lunchStart} – ${d.lunchEnd}` : '—';
+      for (let id = 1; id <= 7; id++) {
+        const d = porDia[id] || {};
+        const idx = id - 1;
+        const trabaja = !!d.trabaja;
+
+        const hIni = d.hora_inicio ? String(d.hora_inicio).slice(0,5) : '—';
+        const hFin = d.hora_fin    ? String(d.hora_fin).slice(0,5)    : '—';
+        const aIni = d.almuerzo_inicio ? String(d.almuerzo_inicio).slice(0,5) : '';
+        const aFin = d.almuerzo_fin    ? String(d.almuerzo_fin).slice(0,5)    : '';
+        const alm  = (aIni && aFin) ? `${aIni} – ${aFin}` : '—';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${dayNames[i]}</td>
-          <td>${d.work ? 'Sí' : 'No'}</td>
-          <td>${d.work ? (d.start || '—') : '—'}</td>
-          <td>${d.work ? (d.end   || '—') : '—'}</td>
-          <td>${d.work ? lunch : '—'}</td>
+          <td>${DAYS[idx]}</td>
+          <td>${trabaja ? 'Sí' : 'No'}</td>
+          <td>${trabaja ? hIni : '—'}</td>
+          <td>${trabaja ? hFin : '—'}</td>
+          <td>${trabaja ? alm : '—'}</td>
         `;
         tb.appendChild(tr);
-      });
+      }
 
-      box.appendChild(table);
-      if(sc.dateStart && sc.dateEnd){
-        range.textContent = `Rango de fechas: ${sc.dateStart} → ${sc.dateEnd}`;
+      scheduleView.innerHTML = '';
+      scheduleView.appendChild(table);
+
+      if (conjunto.fecha_inicio && conjunto.fecha_fin) {
+        rangeInfo.textContent = `Rango de fechas: ${conjunto.fecha_inicio} → ${conjunto.fecha_fin}`;
       }
     }
 
-    /* ====== 3) EDITAR AGENDA (volver a organizar con contexto) ====== */
-    document.getElementById('btnEdit').addEventListener('click', ()=>{
-      if(!ctx){ alert('Falta el contexto de barbero.'); return; }
-      // Guardamos lo mismo que usa organizar agenda para precargar
-      set(LS_EDIT, {
-        businessSlug: biz ? (biz.slug||'') : (ctx.businessSlug||''),
-        businessName: businessName || (ctx.businessName||''),
-        staffName:    ctx.staffName || ''
-      });
-      window.location.href = 'interfaz_organizar_agenda.html';
-    });
-
-    /* ====== 5) ICS (calendario) ====== */
-    function toICSDate(dateIso, hhmm){ // YYYY-MM-DD + HH:MM -> YYYYMMDDTHHMM00
-      const [y,m,d] = dateIso.split('-').map(Number);
+    function toICSDate(fechaIso, hhmm) {
+      if (!fechaIso || !hhmm) return '';
+      const [y,m,d] = fechaIso.split('-').map(Number);
       const [H,Mi]  = hhmm.split(':').map(Number);
       return `${y}${pad2(m)}${pad2(d)}T${pad2(H)}${pad2(Mi)}00`;
     }
-    function downloadICS(evts, filename='mi-agenda.ics'){
+
+    function downloadICS(eventos, filename = 'mi-agenda.ics') {
       const nl = '\r\n';
-      let ics = 'BEGIN:VCALENDAR'+nl
-              + 'VERSION:2.0'+nl
-              + 'PRODID:-//CitasYa//Agenda//ES'+nl
-              + 'CALSCALE:GREGORIAN'+nl;
+      let ics = 'BEGIN:VCALENDAR' + nl
+              + 'VERSION:2.0' + nl
+              + 'PRODID:-//CitasYa//Agenda//ES' + nl
+              + 'CALSCALE:GREGORIAN' + nl;
 
-      evts.forEach(e=>{
-        ics += 'BEGIN:VEVENT'+nl
-            +  `UID:${e.uid}`+nl
-            +  `DTSTAMP:${e.dtstamp}`+nl
-            +  `DTSTART:${e.dtstart}`+nl
-            +  `DTEND:${e.dtend}`+nl
-            +  `SUMMARY:${e.summary}`+nl
+      eventos.forEach(e => {
+        ics += 'BEGIN:VEVENT' + nl
+            +  `UID:${e.uid}` + nl
+            +  `DTSTAMP:${e.dtstamp}` + nl
+            +  `DTSTART:${e.dtstart}` + nl
+            +  `DTEND:${e.dtend}` + nl
+            +  `SUMMARY:${e.summary}` + nl
             +  (e.location ? `LOCATION:${e.location}${nl}` : '')
-            +  (e.description ? `DESCRIPTION:${e.description.replace(/\n/g,'\\n')}${nl}` : '')
-            +  'END:VEVENT'+nl;
+            +  (e.description ? `DESCRIPTION:${e.description.replace(/\n/g, '\\n')}${nl}` : '')
+            +  'END:VEVENT' + nl;
       });
-      ics += 'END:VCALENDAR'+nl;
 
-      const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+      ics += 'END:VCALENDAR' + nl;
+
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = filename;
@@ -323,33 +465,63 @@
       URL.revokeObjectURL(a.href);
     }
 
-    document.getElementById('btnICS').addEventListener('click', ()=>{
-      const mine = bookings
-        .filter(b => (!biz || b.businessSlug === (biz.slug||'')) && b.staffName === (ctx?.staffName||''))
-        .sort((a,b)=> (a.date+a.start) < (b.date+b.start) ? -1 : 1);
-
-      if(!mine.length){ alert('No hay citas para exportar.'); return; }
+    btnICS.addEventListener('click', () => {
+      if (!citasEnMemoria.length) {
+        alert('No hay citas para exportar.');
+        return;
+      }
 
       const now = new Date();
-      const dtstamp = now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate())+'T'+pad2(now.getHours())+pad2(now.getMinutes())+'00';
+      const dtstamp = now.getFullYear()
+        + pad2(now.getMonth() + 1)
+        + pad2(now.getDate())
+        + 'T'
+        + pad2(now.getHours())
+        + pad2(now.getMinutes())
+        + '00';
 
-      const evts = mine.map(b=>({
-        uid: (b.id||Math.random().toString(36).slice(2))+'@citasya',
+      const businessName = ctx?.negocio_nombre || '';
+      const staffName    = ctx?.personal_nombre || 'barbero';
+
+      const evts = citasEnMemoria.map(c => ({
+        uid: (c.id || Math.random().toString(36).slice(2)) + '@citasya',
         dtstamp,
-        dtstart: toICSDate(b.date, b.start),
-        dtend:   toICSDate(b.date, b.end),
-        summary: `Cita - ${b.serviceName||'Servicio'}`,
-        location: businessName || '',
-        description: `Asistente: ${b.attendee||'-'}\nBarbero: ${b.staffName||'-'}\nEstablecimiento: ${businessName||'-'}`
+        dtstart: toICSDate(c.fecha, c.inicio),
+        dtend:   toICSDate(c.fecha, c.fin),
+        summary: `Cita - ${c.servicioNombre || 'Servicio'}`,
+        location: businessName,
+        description: `Asistente: ${c.asistente || '-'}\nBarbero: ${staffName}\nEstablecimiento: ${businessName || '-'}`
       }));
 
-      const fname = `agenda-${(ctx?.staffName||'barbero').replace(/\s+/g,'_')}.ics`;
+      const fname = `agenda-${staffName.replace(/\s+/g, '_')}.ics`;
       downloadICS(evts, fname);
     });
 
-    // Pintar todo
-    paintBookings();
-    paintSchedule();
+    btnEdit.addEventListener('click', () => {
+      window.location.href = 'interfaz_organizar_agenda.html';
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const sesion = cargarSesionLocal();
+      if (!sesion || !sesion.auth_user_id || !sesion.usuario_id) {
+        alert('Debes iniciar sesión para ver tu agenda.');
+        window.location.href = 'interfaz_login.html';
+        return;
+      }
+
+      if (Number(sesion.rol_id) === 1) {
+        alert('Esta sección es solo para barberos / negocios.');
+        redirigirSegunRol(sesion.rol_id);
+        return;
+      }
+
+      leerContextoAgenda();
+      await asegurarContextoDesdeBD(sesion);
+      setWelcome();
+
+      await cargarCitas();
+      await cargarHorario();
+    });
   </script>
 </body>
 </html>

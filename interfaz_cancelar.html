@@ -213,304 +213,622 @@
     Citas Ya S.A.S - Nit 810.000.000-0
   </div>
 
-<script>
-/* ===== Storage & utils ===== */
-const LS_BOOKINGS='cy_bookings';
-const LS_BIZ='cy_businesses';
-const LS_SCH='cy_schedules';
-const LS_APPT='cy_appointments';
+<script type="module">
+  import { supabase } from './supabaseClient.js';
+  import { cargarSesionLocal } from './dataCitasYa.js';
 
-const $=s=>document.querySelector(s);
-const plain=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  /* ===== Constantes de configuración ===== */
+  const ESTADO_PROGRAMADA_ID = 1; // ajusta según tu tabla estado_cita
+  const ESTADO_CANCELADA_ID  = 3; // ajusta según tu tabla estado_cita
 
-const getBookings = ()=>{ try{return JSON.parse(localStorage.getItem(LS_BOOKINGS))||[]}catch(_){return[]} };
-const saveBookings= arr => localStorage.setItem(LS_BOOKINGS, JSON.stringify(arr));
-const getBusinesses=()=>{ try{return JSON.parse(localStorage.getItem(LS_BIZ))||[]}catch(_){return[]} };
-const getSchedules =()=>{ try{return JSON.parse(localStorage.getItem(LS_SCH))||[]}catch(_){return[]} };
-const getAppts    =()=>{ try{return JSON.parse(localStorage.getItem(LS_APPT))||[]}catch(_){return[]} };
-const saveAppts   =arr => localStorage.setItem(LS_APPT, JSON.stringify(arr));
+  /* ===== Helpers básicos ===== */
+  const $ = s => document.querySelector(s);
+  const plain = s => (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 
-const addMinutes=(t,m)=>{const[h,mm]=t.split(':').map(Number);const d=new Date(2000,0,1,h,mm,0);d.setMinutes(d.getMinutes()+m);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
-const toMin =t=>{const[h,m]=t.split(':').map(Number);return h*60+m};
-const overlap=(aS,aE,bS,bE)=> toMin(aS)<toMin(bE) && toMin(bS)<toMin(aE);
+  const addMinutes = (t, m) => {
+    const [h, mm] = t.split(':').map(Number);
+    const d = new Date(2000, 0, 1, h, mm, 0);
+    d.setMinutes(d.getMinutes() + m);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
+  const toMin = t => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const overlap = (aS, aE, bS, bE) =>
+    toMin(aS) < toMin(bE) && toMin(bS) < toMin(aE);
 
-/* ===== Controles ===== */
-const accion   = $('#accion');
-const attendee = $('#attendee'); const attendeesList=$('#attendeesList');
+  // Ahora usamos la sesión guardada por dataCitasYa.js (cy_session_supabase)
+  function getCurrentSessionUser() {
+    try {
+      const sess = cargarSesionLocal();
+      if (!sess) return null;
 
-const citasSection=$('#citasSection'); const citasList=$('#citasList');
+      return {
+        id: sess.usuario_id ?? sess.id ?? null,
+        rol_id: sess.rol_id,
+        nombre: sess.nombre || sess.nombre_completo || '',
+        correo: sess.correo || '',
+        telefono: sess.telefono || '',
+        usuario: sess.usuario || '',
+      };
+    } catch (e) {
+      console.warn('No se pudo leer la sesión local', e);
+      return null;
+    }
+  }
 
-const cancelBlock=$('#cancelBlock'); const cancelSummary=$('#cancelSummary'); const btnCancelar=$('#btnCancelar'); const btnClear=$('#btnClear');
+  /* ===== Controles DOM ===== */
+  const accion       = $('#accion');
+  const attendee     = $('#attendee');
+  const attendeesList= $('#attendeesList');
 
-const reBlock=$('#reBlock'); const bizName=$('#bizName'); const svc=$('#svc'); const svcDur=$('#svcDur');
-const staff=$('#staff'); const dateEl=$('#date'); const timeSel=$('#timeSel'); const timeHelp=$('#timeHelp');
-const oldSummary=$('#oldSummary'); const newSummary=$('#newSummary');
-const btnReagendar=$('#btnReagendar'); const btnClear2=$('#btnClear2');
+  const citasSection = $('#citasSection');
+  const citasList    = $('#citasList');
 
-let foundBookings=[];  // lista de citas del asistente
-let selectedBooking=null;
+  const cancelBlock  = $('#cancelBlock');
+  const cancelSummary= $('#cancelSummary');
+  const btnCancelar  = $('#btnCancelar');
+  const btnClear     = $('#btnClear');
 
-/* ===== Horarios (para reagendar) ===== */
-function getScheduleBlockFor(businessSlug, staffName, dateISO){
-  const blocks=getSchedules().filter(b =>
-    (b.businessSlug||'')===businessSlug && (b.staffName||'')===staffName &&
-    dateISO>=b.dateStart && dateISO<=b.dateEnd
-  );
-  if(!blocks.length) return null;
-  blocks.sort((a,b)=> (a.createdAt||'')<(b.createdAt||'')?-1:1);
-  return blocks[blocks.length-1];
-}
-function windowsFromDay(d){
-  if(!d||!d.work||!d.start||!d.end||d.start>=d.end) return [];
-  const base=[[d.start,d.end]];
-  if(d.lunchStart&&d.lunchEnd&&d.lunchStart<d.lunchEnd){
-    const out=[]; base.forEach(([a,b])=>{
-      if(d.lunchStart>a) out.push([a,Math.min(b,d.lunchStart)]);
-      if(d.lunchEnd<b)   out.push([Math.max(a,d.lunchEnd),b]);
+  const reBlock      = $('#reBlock');
+  const bizName      = $('#bizName');
+  const svc          = $('#svc');
+  const svcDur       = $('#svcDur');
+  const staff        = $('#staff');
+  const dateEl       = $('#date');
+  const timeSel      = $('#timeSel');
+  const timeHelp     = $('#timeHelp');
+  const oldSummary   = $('#oldSummary');
+  const newSummary   = $('#newSummary');
+  const btnReagendar = $('#btnReagendar');
+  const btnClear2    = $('#btnClear2');
+
+  /* ===== Estado en memoria ===== */
+  let foundBookings   = []; // citas encontradas
+  let selectedBooking = null;
+  const attendeesIndex = new Map(); // nombre_normalizado -> [ids_usuario]
+
+  // caches sencillos por negocio
+  const serviciosPorNegocio = new Map(); // negocio_id -> [servicios]
+  const staffPorNegocio     = new Map(); // negocio_id -> [barberos]
+
+  /* ===== Carga de asistentes para el datalist ===== */
+  async function fillAttendees() {
+    attendeesList.innerHTML = '';
+    attendeesIndex.clear();
+
+    const currentUser = getCurrentSessionUser();
+
+    // Si hay usuario logueado y es cliente (rol 1), sólo permitimos ese
+    if (currentUser && Number(currentUser.rol_id) === 1) {
+      const norm = plain(currentUser.nombre);
+      attendeesIndex.set(norm, [currentUser.id]);
+
+      const op = document.createElement('option');
+      op.value = currentUser.nombre;
+      attendeesList.appendChild(op);
+
+      attendee.value = currentUser.nombre;
+      await searchBookings(); // cargamos sus citas
+      return;
+    }
+
+    // Si no, cargamos todos los usuarios con rol "usuario" (id rol = 1)
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id, nombre_completo, rol_id')
+      .eq('rol_id', 1)
+      .order('nombre_completo', { ascending: true });
+
+    if (error) {
+      console.error('Error cargando usuarios para cancelar citas:', error);
+      return;
+    }
+
+    for (const u of data) {
+      const norm = plain(u.nombre_completo);
+      if (!attendeesIndex.has(norm)) attendeesIndex.set(norm, []);
+      attendeesIndex.get(norm).push(u.id);
+
+      const op = document.createElement('option');
+      op.value = u.nombre_completo;
+      attendeesList.appendChild(op);
+    }
+  }
+
+  /* ===== Búsqueda de citas en Supabase ===== */
+  async function searchBookings() {
+    const nameRaw = attendee.value || '';
+    const normName = plain(nameRaw);
+    citasList.innerHTML = '';
+    cancelBlock.style.display = 'none';
+    reBlock.style.display = 'none';
+    selectedBooking = null;
+
+    if (!normName) {
+      citasSection.style.display = 'none';
+      return;
+    }
+
+    const userIds = attendeesIndex.get(normName) || [];
+    if (!userIds.length) {
+      citasSection.style.display = 'block';
+      citasList.innerHTML = '<div class="muted">No se encontraron citas para ese asistente.</div>';
+      return;
+    }
+
+    // Traer citas activas (no canceladas) de esos usuarios
+    const { data, error } = await supabase
+      .from('citas')
+      .select(`
+        id,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        estado_cita_id,
+        usuario:usuario_id ( id, nombre_completo ),
+        negocio:negocio_id ( id, nombre ),
+        servicio:servicio_id ( id, nombre, duracion_minutos ),
+        personal:personal_id ( id, nombre_publico )
+      `)
+      .in('usuario_id', userIds)
+      .neq('estado_cita_id', ESTADO_CANCELADA_ID)
+      .order('fecha', { ascending: true })
+      .order('hora_inicio', { ascending: true });
+
+    if (error) {
+      console.error('Error buscando citas:', error);
+      citasSection.style.display = 'block';
+      citasList.innerHTML = '<div class="muted">Ocurrió un error al buscar citas.</div>';
+      return;
+    }
+
+    foundBookings = (data || []).map(row => ({
+      id: row.id,
+      attendeeId: row.usuario?.id ?? null,
+      attendee: row.usuario?.nombre_completo ?? '',
+      businessId: row.negocio?.id ?? null,
+      businessName: row.negocio?.nombre ?? '',
+      serviceId: row.servicio?.id ?? null,
+      serviceName: row.servicio?.nombre ?? '',
+      durationMins: row.servicio?.duracion_minutos ?? 30,
+      staffId: row.personal?.id ?? null,
+      staffName: row.personal?.nombre_publico ?? '',
+      date: row.fecha,
+      start: (row.hora_inicio || '').substring(0, 5),
+      end: (row.hora_fin || '').substring(0, 5),
+    }));
+
+    if (!foundBookings.length) {
+      citasSection.style.display = 'block';
+      citasList.innerHTML = '<div class="muted">No se encontraron citas para ese asistente.</div>';
+      return;
+    }
+
+    renderBookings();
+  }
+
+  function renderBookings() {
+    citasSection.style.display = 'block';
+    citasList.innerHTML = '';
+
+    foundBookings.forEach((b, idx) => {
+      const row = document.createElement('div');
+      row.style.display = 'grid';
+      row.style.gridTemplateColumns = 'auto 1fr auto';
+      row.style.gap = '10px';
+      row.style.alignItems = 'center';
+      row.style.padding = '6px 0';
+      row.style.borderBottom = '1px solid #eee';
+
+      const r = document.createElement('input');
+      r.type = 'radio';
+      r.name = 'bk';
+      r.id = 'bk_' + idx;
+      r.value = b.id;
+      if (idx === 0) r.checked = true;
+
+      const lab = document.createElement('label');
+      lab.setAttribute('for', 'bk_' + idx);
+      lab.innerHTML =
+        `<strong>${b.businessName}</strong> · ${b.serviceName} · ${b.staffName}<br>` +
+        `<span class="muted">${b.date} ${b.start}–${b.end}</span>`;
+
+      const sel = document.createElement('button');
+      sel.className = 'btn btn-blue';
+      sel.style.width = 'auto';
+      sel.style.margin = '0';
+      sel.textContent = 'Seleccionar';
+      sel.addEventListener('click', () => selectBooking(b.id));
+
+      row.appendChild(r);
+      row.appendChild(lab);
+      row.appendChild(sel);
+      citasList.appendChild(row);
     });
-    return out.filter(([a,b])=>a<b);
+
+    selectBooking(foundBookings[0].id);
   }
-  return base;
-}
-function slotsFromWindows(wins,dur){
-  const s=[]; for(const [a,b] of wins){ let t=a; while(toMin(t)+dur<=toMin(b)){ s.push(t); t=addMinutes(t,10);} } return s;
-}
-function removeBookedSlots(slots, businessSlug, staffName, dateISO, duration, ignoreId){
-  const books=getBookings().filter(b=> b.businessSlug===businessSlug && b.staffName===staffName && b.date===dateISO && b.id!==ignoreId);
-  return slots.filter(t=>{
-    const e=addMinutes(t,duration);
-    return !books.some(b=> overlap(t,e,b.start,b.end));
-  });
-}
 
-/* ===== Búsqueda por asistente ===== */
-function fillAttendees(){
-  attendeesList.innerHTML='';
-  const set=new Set(getBookings().map(b=>b.attendee));
-  [...set].sort().forEach(n=>{ const op=document.createElement('option'); op.value=n; attendeesList.appendChild(op); });
-}
-document.addEventListener('DOMContentLoaded', ()=>{ fillAttendees(); accion.dispatchEvent(new Event('change')); });
+  function selectBooking(id) {
+    selectedBooking = foundBookings.find(b => b.id === id);
+    if (!selectedBooking) return;
 
-accion.addEventListener('change', ()=>{
-  citasSection.style.display='none'; citasList.innerHTML='';
-  cancelBlock.style.display='none'; reBlock.style.display='none';
-  selectedBooking=null;
-});
-
-attendee.addEventListener('input', ()=>{ clearTimeout(attendee._t); attendee._t=setTimeout(searchBookings,250); });
-attendee.addEventListener('change', searchBookings);
-
-function searchBookings(){
-  const name=plain(attendee.value);
-  citasList.innerHTML='';
-  if(!name){ citasSection.style.display='none'; return; }
-
-  foundBookings=getBookings().filter(b=> plain(b.attendee)===name);
-  if(!foundBookings.length){
-    citasSection.style.display='block';
-    citasList.innerHTML='<div class="muted">No se encontraron citas para ese asistente.</div>';
-    cancelBlock.style.display='none'; reBlock.style.display='none'; selectedBooking=null;
-    return;
+    if (accion.value === 'cancelar') {
+      cancelBlock.style.display = 'block';
+      reBlock.style.display = 'none';
+      cancelSummary.value =
+        `Asistente: ${selectedBooking.attendee}\n` +
+        `Establecimiento: ${selectedBooking.businessName}\n` +
+        `Servicio: ${selectedBooking.serviceName} (${selectedBooking.durationMins} min)\n` +
+        `Barbero: ${selectedBooking.staffName}\n` +
+        `Fecha: ${selectedBooking.date}\n` +
+        `Hora: ${selectedBooking.start} - ${selectedBooking.end}\n\n` +
+        `¿Deseas cancelar esta cita?`;
+    } else {
+      cancelBlock.style.display = 'none';
+      reBlock.style.display = 'block';
+      preloadReagenda(selectedBooking);
+    }
   }
-  renderBookings();
-}
-function renderBookings(){
-  citasSection.style.display='block'; citasList.innerHTML='';
-  foundBookings.forEach((b,idx)=>{
-    const row=document.createElement('div');
-    row.style.display='grid'; row.style.gridTemplateColumns='auto 1fr auto'; row.style.gap='10px'; row.style.alignItems='center'; row.style.padding='6px 0'; row.style.borderBottom='1px solid #eee';
 
-    const r=document.createElement('input'); r.type='radio'; r.name='bk'; r.id='bk_'+idx; r.value=b.id;
-    if(idx===0) r.checked=true;
+  /* ===== Cancelar cita en Supabase ===== */
+  async function cancelarCita() {
+    if (!selectedBooking) {
+      alert('Selecciona una cita.');
+      return;
+    }
+    if (!confirm('¿Confirmas que deseas cancelar la cita?')) return;
 
-    const lab=document.createElement('label'); lab.setAttribute('for','bk_'+idx);
-    lab.innerHTML=`<strong>${b.businessName}</strong> · ${b.serviceName} · ${b.staffName}<br><span class="muted">${b.date} ${b.start}–${b.end}</span>`;
+    const { error } = await supabase
+      .from('citas')
+      .update({
+        estado_cita_id: ESTADO_CANCELADA_ID,
+        actualizado_en: new Date().toISOString(),
+      })
+      .eq('id', selectedBooking.id);
 
-    const sel=document.createElement('button'); sel.className='btn btn-blue'; sel.style.width='auto'; sel.style.margin='0'; sel.textContent='Seleccionar';
-    sel.addEventListener('click',()=> selectBooking(b.id));
+    if (error) {
+      console.error('Error al cancelar cita:', error);
+      alert('Ocurrió un error al cancelar la cita.');
+      return;
+    }
 
-    row.appendChild(r); row.appendChild(lab); row.appendChild(sel);
-    citasList.appendChild(row);
-  });
-  selectBooking(foundBookings[0].id);
-}
-function selectBooking(id){
-  selectedBooking=foundBookings.find(b=>b.id===id);
-  if(!selectedBooking) return;
-
-  if(accion.value==='cancelar'){
-    cancelBlock.style.display='block'; reBlock.style.display='none';
-    cancelSummary.value =
-      `Asistente: ${selectedBooking.attendee}\n`+
-      `Establecimiento: ${selectedBooking.businessName}\n`+
-      `Servicio: ${selectedBooking.serviceName} (${selectedBooking.durationMins} min)\n`+
-      `Barbero: ${selectedBooking.staffName}\n`+
-      `Fecha: ${selectedBooking.date}\n`+
-      `Hora: ${selectedBooking.start} - ${selectedBooking.end}\n\n`+
-      `¿Deseas cancelar esta cita?`;
-  }else{
-    cancelBlock.style.display='none'; reBlock.style.display='block';
-    preloadReagenda(selectedBooking);
+    alert('Cita cancelada. La franja quedó disponible.');
+    resetAll();
   }
-}
 
-/* ===== Cancelar ===== */
-btnCancelar.addEventListener('click', ()=>{
-  if(!selectedBooking){ alert('Selecciona una cita.'); return; }
-  if(!confirm('¿Confirmas que deseas cancelar la cita?')) return;
-
-  // quitar de bookings
-  saveBookings(getBookings().filter(b=>b.id!==selectedBooking.id));
-
-  // actualizar métricas cy_appointments
-  const appts=getAppts();
-  const idx=appts.findIndex(a=> a.id===selectedBooking.id ||
-    (a.attendee===selectedBooking.attendee && a.businessSlug===selectedBooking.businessSlug &&
-     a.staffName===selectedBooking.staffName && a.date===selectedBooking.date &&
-     a.timeStart===selectedBooking.start));
-  if(idx>-1){ appts[idx].status='cancelled'; appts[idx].updatedAt=new Date().toISOString(); saveAppts(appts); }
-
-  alert('Cita cancelada. La franja quedó disponible.');
-  resetAll();
-});
-btnClear.addEventListener('click', resetAll);
-function resetAll(){
-  attendee.value=''; citasSection.style.display='none'; citasList.innerHTML='';
-  cancelBlock.style.display='none'; reBlock.style.display='none'; selectedBooking=null; fillAttendees();
-}
-
-/* ===== Re-agendar ===== */
-function preloadReagenda(bk){
-  bizName.value=bk.businessName;
-  const biz=getBusinesses().find(x=>(x.slug||'')===(bk.businessSlug||''));
-
-  svc.innerHTML=''; staff.innerHTML='';
-  if(!biz){
-    svc.innerHTML='<option>(no disponible)</option>'; staff.innerHTML='<option>(no disponible)</option>'; return;
+  function resetAll() {
+    attendee.value = '';
+    citasSection.style.display = 'none';
+    citasList.innerHTML = '';
+    cancelBlock.style.display = 'none';
+    reBlock.style.display = 'none';
+    selectedBooking = null;
+    fillAttendees();
   }
-  // servicios
-  (biz.services||[]).sort((a,b)=>a.order-b.order).forEach(s=>{
-    const op=document.createElement('option'); op.value=s.id; op.textContent=`${s.name} (${s.durationMins} min)`; op.dataset.duration=s.durationMins;
-    if(String(s.id)===String(bk.serviceId)) op.selected=true;
-    svc.appendChild(op);
-  });
-  updateStaffOptions(biz, String(bk.serviceId));
 
-  dateEl.value=bk.date;
-  buildTimeOptions();
+  /* ===== Re-agendar: carga de servicios y staff ===== */
+  async function preloadReagenda(bk) {
+    bizName.value = bk.businessName;
 
-  oldSummary.value =
-    `Asistente: ${bk.attendee}\n`+
-    `Establecimiento: ${bk.businessName}\n`+
-    `Servicio: ${bk.serviceName} (${bk.durationMins} min)\n`+
-    `Barbero: ${bk.staffName}\n`+
-    `Fecha: ${bk.date}\n`+
-    `Hora: ${bk.start} - ${bk.end}`;
-  updateNewSummary();
-}
-function updateStaffOptions(biz, serviceId){
-  staff.innerHTML='';
-  (biz.staff||[]).forEach(p=>{
-    if(p && p.name && p.offers && p.offers[serviceId]){
-      const op=document.createElement('option'); op.value=p.name; op.textContent=p.name;
-      if(selectedBooking && p.name===selectedBooking.staffName) op.selected=true;
+    await ensureBusinessData(bk.businessId);
+
+    // Servicios
+    svc.innerHTML = '';
+    const servicios = serviciosPorNegocio.get(bk.businessId) || [];
+    servicios.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    for (const s of servicios) {
+      const op = document.createElement('option');
+      op.value = s.id;
+      op.textContent = `${s.nombre} (${s.duracion_minutos} min)`;
+      op.dataset.duration = s.duracion_minutos;
+      if (String(s.id) === String(bk.serviceId)) op.selected = true;
+      svc.appendChild(op);
+    }
+
+    // Staff
+    staff.innerHTML = '';
+    const barberos = staffPorNegocio.get(bk.businessId) || [];
+    for (const p of barberos) {
+      const op = document.createElement('option');
+      op.value = p.id;
+      op.textContent = p.nombre_publico;
+      if (String(p.id) === String(bk.staffId)) op.selected = true;
       staff.appendChild(op);
     }
+
+    const sel = svc.options[svc.selectedIndex];
+    const dur = sel ? Number(sel.dataset.duration || 0) : bk.durationMins;
+    svcDur.textContent = dur ? `Duración: ${dur} min` : 'Duración: —';
+
+    dateEl.value = bk.date;
+    buildTimeOptions();
+
+    oldSummary.value =
+      `Asistente: ${bk.attendee}\n` +
+      `Establecimiento: ${bk.businessName}\n` +
+      `Servicio: ${bk.serviceName} (${bk.durationMins} min)\n` +
+      `Barbero: ${bk.staffName}\n` +
+      `Fecha: ${bk.date}\n` +
+      `Hora: ${bk.start} - ${bk.end}`;
+
+    updateNewSummary();
+  }
+
+  async function ensureBusinessData(businessId) {
+    if (!serviciosPorNegocio.has(businessId)) {
+      const { data, error } = await supabase
+        .from('servicios')
+        .select('id, negocio_id, nombre, duracion_minutos')
+        .eq('negocio_id', businessId);
+
+      if (error) {
+        console.error('Error cargando servicios:', error);
+        serviciosPorNegocio.set(businessId, []);
+      } else {
+        serviciosPorNegocio.set(businessId, data || []);
+      }
+    }
+
+    if (!staffPorNegocio.has(businessId)) {
+      const { data, error } = await supabase
+        .from('personal')
+        .select('id, negocio_id, nombre_publico')
+        .eq('negocio_id', businessId);
+
+      if (error) {
+        console.error('Error cargando personal:', error);
+        staffPorNegocio.set(businessId, []);
+      } else {
+        staffPorNegocio.set(businessId, data || []);
+      }
+    }
+  }
+
+  function updateStaffOptions() {
+    if (!selectedBooking) return;
+    const barberos = staffPorNegocio.get(selectedBooking.businessId) || [];
+    staff.innerHTML = '';
+    for (const p of barberos) {
+      const op = document.createElement('option');
+      op.value = p.id;
+      op.textContent = p.nombre_publico;
+      if (String(p.id) === String(selectedBooking.staffId)) op.selected = true;
+      staff.appendChild(op);
+    }
+
+    const sel = svc.options[svc.selectedIndex];
+    const dur = sel ? Number(sel.dataset.duration || 0) : selectedBooking.durationMins;
+    svcDur.textContent = dur ? `Duración: ${dur} min` : 'Duración: —';
+    buildTimeOptions();
+    updateNewSummary();
+  }
+
+  svc.addEventListener('change', () => {
+    updateStaffOptions();
   });
-  const sel=svc.options[svc.selectedIndex];
-  const dur=sel?Number(sel.dataset.duration||0):0;
-  svcDur.textContent=dur?`Duración: ${dur} min`:'Duración: —';
-  buildTimeOptions(); updateNewSummary();
-}
-svc.addEventListener('change', ()=>{
-  const biz=getBusinesses().find(x=>(x.slug||'')===(selectedBooking.businessSlug||'')); if(!biz) return;
-  updateStaffOptions(biz, String(svc.value));
-});
-[staff,dateEl].forEach(el=>{
-  el.addEventListener('change', ()=>{ buildTimeOptions(); updateNewSummary(); });
-  el.addEventListener('input',  ()=>{ buildTimeOptions(); updateNewSummary(); });
-});
-timeSel.addEventListener('change', updateNewSummary);
 
-function updateNewSummary(){
-  if(!selectedBooking){ newSummary.value=''; return; }
-  const sel=svc.options[svc.selectedIndex];
-  const svcName=sel?sel.textContent.replace(/\s*\(\d+ min\)\s*$/,''):selectedBooking.serviceName;
-  const dur=sel?Number(sel.dataset.duration||selectedBooking.durationMins):selectedBooking.durationMins;
-  const stf=staff.value||selectedBooking.staffName;
-  const date=dateEl.value||selectedBooking.date;
-  const start=timeSel.value||selectedBooking.start;
-  const end=(start&&dur)?addMinutes(start,dur):selectedBooking.end;
+  [staff, dateEl].forEach(el => {
+    el.addEventListener('change', () => {
+      buildTimeOptions();
+      updateNewSummary();
+    });
+    el.addEventListener('input', () => {
+      buildTimeOptions();
+      updateNewSummary();
+    });
+  });
 
-  newSummary.value=
-    `Asistente: ${selectedBooking.attendee}\n`+
-    `Establecimiento: ${selectedBooking.businessName}\n`+
-    `Servicio: ${svcName} (${dur} min)\n`+
-    `Barbero: ${stf}\n`+
-    `Fecha: ${date}\n`+
-    `Hora: ${start||'--:--'} - ${end||'--:--'}`;
-}
-function buildTimeOptions(){
-  timeSel.innerHTML='<option value="">— Selecciona fecha —</option>'; timeSel.disabled=true; timeHelp.textContent='';
-  if(!selectedBooking) return;
-  const dateISO=dateEl.value; const sel=svc.options[svc.selectedIndex];
-  const dur=sel?Number(sel.dataset.duration||selectedBooking.durationMins):selectedBooking.durationMins;
-  const stf=staff.value||selectedBooking.staffName;
-  if(!dateISO || !stf) return;
+  timeSel.addEventListener('change', updateNewSummary);
 
-  const block=getScheduleBlockFor(selectedBooking.businessSlug, stf, dateISO);
-  if(!block){ timeHelp.textContent='Sin horario publicado para esa fecha.'; return; }
+  /* ===== Construcción de horarios disponibles =====
+     Versión simplificada:
+     - Se asume horario general 09:00–19:00
+     - Pasos de 10 minutos
+     - Se evita solapar con otras citas del mismo barbero en esa fecha
+  =============================================== */
+  async function buildTimeOptions() {
+    timeSel.innerHTML = '<option value="">— Selecciona fecha —</option>';
+    timeSel.disabled = true;
+    timeHelp.textContent = '';
 
-  const dayIdx=(new Date(dateISO+'T00:00:00')).getDay();
-  const schedIdx=(dayIdx+6)%7;
-  const schedDay=block.schedule && block.schedule[schedIdx];
-  const wins=windowsFromDay(schedDay);
-  if(!wins.length){ timeHelp.textContent='Día no laborable.'; return; }
+    if (!selectedBooking) return;
 
-  let slots=slotsFromWindows(wins,dur);
-  slots=removeBookedSlots(slots, selectedBooking.businessSlug, stf, dateISO, dur, selectedBooking.id);
-  if(!slots.length){ timeHelp.textContent='No hay horas disponibles para ese día.'; return; }
+    const dateISO = dateEl.value;
+    const selSvc = svc.options[svc.selectedIndex];
+    const dur = selSvc ? Number(selSvc.dataset.duration || selectedBooking.durationMins) : selectedBooking.durationMins;
+    const staffId = staff.value || selectedBooking.staffId;
 
-  timeSel.innerHTML='<option value="">— Selecciona una hora —</option>';
-  slots.forEach(t=>{ const op=document.createElement('option'); op.value=t; op.textContent=t; timeSel.appendChild(op); });
-  timeSel.disabled=false;
-}
+    if (!dateISO || !staffId) return;
 
-btnReagendar.addEventListener('click', ()=>{
-  if(!selectedBooking){ alert('Selecciona una cita.'); return; }
-  const op=svc.options[svc.selectedIndex]; if(!op){ alert('Selecciona el servicio.'); return; }
-  const dur=Number(op.dataset.duration||0);
-  const serviceId=svc.value;
-  const serviceName=op.textContent.replace(/\s*\(\d+ min\)\s*$/,'');
-  const stf=staff.value; const date=dateEl.value; const start=timeSel.value;
-  if(!stf){ alert('Selecciona el barbero.'); return; }
-  if(!date){ alert('Selecciona la fecha.'); return; }
-  if(!start){ alert('Selecciona la hora.'); return; }
-  const end=addMinutes(start,dur);
+    // Citas existentes del barbero para ese día (excepto la propia)
+    const { data, error } = await supabase
+      .from('citas')
+      .select('hora_inicio, hora_fin, id, estado_cita_id')
+      .eq('personal_id', staffId)
+      .eq('fecha', dateISO)
+      .neq('estado_cita_id', ESTADO_CANCELADA_ID)
+      .neq('id', selectedBooking.id);
 
-  // evitar choques (excluye la propia)
-  const same=getBookings().filter(b=> b.id!==selectedBooking.id && b.businessSlug===selectedBooking.businessSlug && b.staffName===stf && b.date===date);
-  if(same.some(b=> overlap(start,end,b.start,b.end))){ alert('Esa franja no está disponible.'); return; }
-  if(!confirm('¿Confirmas re-agendar la cita?')) return;
+    if (error) {
+      console.error('Error consultando citas del día:', error);
+      timeHelp.textContent = 'Error consultando disponibilidad.';
+      return;
+    }
 
-  // actualiza booking
-  const all=getBookings();
-  const i=all.findIndex(b=>b.id===selectedBooking.id);
-  if(i>-1){
-    all[i]={ ...all[i], serviceId, serviceName, durationMins:dur, staffName:stf, date, start, end };
-    saveBookings(all);
+    const ocupadas = (data || []).map(r => ({
+      start: (r.hora_inicio || '').substring(0, 5),
+      end: (r.hora_fin || '').substring(0, 5),
+    }));
+
+    // Ventanas de 09:00 a 19:00 (puedes ajustar)
+    const ventanaInicio = '09:00';
+    const ventanaFin    = '19:00';
+
+    const slots = [];
+    let t = ventanaInicio;
+    while (toMin(t) + dur <= toMin(ventanaFin)) {
+      slots.push(t);
+      t = addMinutes(t, 10); // pasos de 10 min
+    }
+
+    const libres = slots.filter(horaIni => {
+      const horaFin = addMinutes(horaIni, dur);
+      return !ocupadas.some(o => overlap(horaIni, horaFin, o.start, o.end));
+    });
+
+    if (!libres.length) {
+      timeHelp.textContent = 'No hay horas disponibles para ese día.';
+      return;
+    }
+
+    timeSel.innerHTML = '<option value="">— Selecciona una hora —</option>';
+    for (const h of libres) {
+      const op = document.createElement('option');
+      op.value = h;
+      op.textContent = h;
+      timeSel.appendChild(op);
+    }
+    timeSel.disabled = false;
   }
-  // actualiza métricas
-  const appts=getAppts();
-  const j=appts.findIndex(a=>a.id===selectedBooking.id);
-  if(j>-1){
-    appts[j]={ ...appts[j], staffName:stf, serviceName, date, timeStart:start, timeEnd:end, status:'scheduled', updatedAt:new Date().toISOString() };
-    saveAppts(appts);
+
+  function updateNewSummary() {
+    if (!selectedBooking) {
+      newSummary.value = '';
+      return;
+    }
+    const sel = svc.options[svc.selectedIndex];
+    const svcName = sel
+      ? sel.textContent.replace(/\s*\(\d+ min\)\s*$/, '')
+      : selectedBooking.serviceName;
+    const dur = sel
+      ? Number(sel.dataset.duration || selectedBooking.durationMins)
+      : selectedBooking.durationMins;
+
+    const staffName = staff.options[staff.selectedIndex]?.textContent || selectedBooking.staffName;
+    const date = dateEl.value || selectedBooking.date;
+    const start = timeSel.value || selectedBooking.start;
+    const end = (start && dur) ? addMinutes(start, dur) : selectedBooking.end;
+
+    newSummary.value =
+      `Asistente: ${selectedBooking.attendee}\n` +
+      `Establecimiento: ${selectedBooking.businessName}\n` +
+      `Servicio: ${svcName} (${dur} min)\n` +
+      `Barbero: ${staffName}\n` +
+      `Fecha: ${date}\n` +
+      `Hora: ${start || '--:--'} - ${end || '--:--'}`;
   }
-  alert('Cita re-agendada con éxito.');
-  resetAll();
-});
-btnClear2.addEventListener('click', resetAll);
+
+  /* ===== Re-agendar en Supabase ===== */
+  async function reprogramarCita() {
+    if (!selectedBooking) {
+      alert('Selecciona una cita.');
+      return;
+    }
+
+    const opSvc = svc.options[svc.selectedIndex];
+    if (!opSvc) {
+      alert('Selecciona el servicio.');
+      return;
+    }
+    const dur = Number(opSvc.dataset.duration || 0);
+    const serviceId = svc.value;
+    const serviceName = opSvc.textContent.replace(/\s*\(\d+ min\)\s*$/, '');
+
+    const staffId = staff.value;
+    const staffName = staff.options[staff.selectedIndex]?.textContent || '';
+    const date = dateEl.value;
+    const start = timeSel.value;
+
+    if (!staffId) { alert('Selecciona el barbero.'); return; }
+    if (!date)     { alert('Selecciona la fecha.'); return; }
+    if (!start)    { alert('Selecciona la hora.');  return; }
+
+    const end = addMinutes(start, dur);
+
+    // Verificación final de choques
+    const { data, error } = await supabase
+      .from('citas')
+      .select('id, hora_inicio, hora_fin')
+      .eq('personal_id', staffId)
+      .eq('fecha', date)
+      .neq('estado_cita_id', ESTADO_CANCELADA_ID)
+      .neq('id', selectedBooking.id);
+
+    if (error) {
+      console.error('Error verificando choques:', error);
+      alert('Error verificando disponibilidad.');
+      return;
+    }
+
+    const hayChoque = (data || []).some(c => {
+      const s = (c.hora_inicio || '').substring(0, 5);
+      const e = (c.hora_fin || '').substring(0, 5);
+      return overlap(start, end, s, e);
+    });
+
+    if (hayChoque) {
+      alert('Esa franja no está disponible.');
+      return;
+    }
+
+    if (!confirm('¿Confirmas re-agendar la cita?')) return;
+
+    const { error: errUpd } = await supabase
+      .from('citas')
+      .update({
+        servicio_id: serviceId,
+        personal_id: staffId,
+        fecha: date,
+        hora_inicio: start,
+        hora_fin: end,
+        estado_cita_id: ESTADO_PROGRAMADA_ID,
+        actualizado_en: new Date().toISOString(),
+      })
+      .eq('id', selectedBooking.id);
+
+    if (errUpd) {
+      console.error('Error al re-agendar:', errUpd);
+      alert('Ocurrió un error al re-agendar la cita.');
+      return;
+    }
+
+    alert('Cita re-agendada con éxito.');
+    resetAll();
+  }
+
+  /* ===== Eventos ===== */
+  document.addEventListener('DOMContentLoaded', async () => {
+    await fillAttendees();
+    accion.dispatchEvent(new Event('change'));
+  });
+
+  accion.addEventListener('change', () => {
+    citasSection.style.display = 'none';
+    citasList.innerHTML = '';
+    cancelBlock.style.display = 'none';
+    reBlock.style.display = 'none';
+    selectedBooking = null;
+  });
+
+  attendee.addEventListener('input', () => {
+    clearTimeout(attendee._t);
+    attendee._t = setTimeout(() => { searchBookings(); }, 250);
+  });
+  attendee.addEventListener('change', () => { searchBookings(); });
+
+  btnCancelar.addEventListener('click', () => { cancelarCita(); });
+  btnClear.addEventListener('click', () => { resetAll(); });
+
+  btnReagendar.addEventListener('click', () => { reprogramarCita(); });
+  btnClear2.addEventListener('click', () => { resetAll(); });
 </script>
 
 </body>

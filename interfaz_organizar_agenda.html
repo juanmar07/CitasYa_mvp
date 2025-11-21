@@ -95,7 +95,7 @@
     .app-banner .banner-inner{ display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; gap:8px; width:100%; padding:0 12px;}
     .banner-back{ justify-self:start; }
     .banner-title{ justify-self:center; font-weight:700; color:#233247; }
-    .banner-logo{ justify-self:end; display:inline-flex; align-items:center; }
+    .banner-logo{ justify-self: end; display:inline-flex; align-items:center; }
     .banner-logo img{ width:52px; height:auto; display:block; }
     .back-button{
       display:inline-block; text-decoration:none; font-size:14px; color:#5c6bc0;
@@ -261,21 +261,14 @@
     Citas Ya S.A.S - Nit 810.000.000-0
   </div>
 
-  <script>
+  <script type="module">
+    import { supabase } from './supabaseClient.js';
+    import { cargarSesionLocal, redirigirSegunRol } from './dataCitasYa.js';
+
     /* ====== Utilidades ====== */
     const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']; // 0..6
-    const normalizeSlug = (str='') =>
-      str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,'-');
-    const normalizePlain = (str='') =>
-      str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
-
-    const LS_BIZ = 'cy_businesses';
-    const LS_SCH = 'cy_schedules';
-    const LS_CTX = 'cy_lastAgendaView'; // contexto para "Mi agenda"
-
-    const getBusinesses = () => { try{ return JSON.parse(localStorage.getItem(LS_BIZ))||[]; }catch(e){ return []; } };
-    const getSchedules  = () => { try{ return JSON.parse(localStorage.getItem(LS_SCH))||[]; }catch(e){ return []; } };
-    const saveSchedules = (arr) => localStorage.setItem(LS_SCH, JSON.stringify(arr));
+    // En la BD: lunes=1,...,domingo=7
+    const JS_TO_DB_DIA = [1,2,3,4,5,6,7];
 
     function createTimePicker(el){
       const hh = document.createElement('select');
@@ -298,22 +291,24 @@
     }
 
     /* ====== Estado ====== */
-    let currentBiz = null; // negocio cargado
-    let currentStaff = ''; // nombre del personal
+    let negocioActual = null;       // { id, nombre }
+    let personalLista = [];         // filas de tabla personal
+    let personalActual = null;      // fila seleccionada de personal
     const schedule = Array.from({length:7},()=>({ work:false, start:'', end:'', lunchStart:'', lunchEnd:'' }));
-    let dateStart = ''; let dateEnd = '';
+    let dateStart = '';
+    let dateEnd = '';
 
     /* ====== Controles ====== */
-    const bizName = document.getElementById('bizName');
-    const bizState = document.getElementById('bizState');
-    const staffSelect = document.getElementById('staffSelect');
+    const bizName      = document.getElementById('bizName');
+    const bizState     = document.getElementById('bizState');
+    const staffSelect  = document.getElementById('staffSelect');
 
-    const sameAllWeek = document.getElementById('sameAllWeek');
+    const sameAllWeek   = document.getElementById('sameAllWeek');
     const sameWeekBlock = document.getElementById('sameWeekBlock');
-    const commonStart = createTimePicker(document.getElementById('commonStart'));
-    const commonEnd   = createTimePicker(document.getElementById('commonEnd'));
-    const commonDays  = document.getElementById('commonDays');
-    const btnApplyCommon = document.getElementById('btnApplyCommon');
+    const commonStart   = createTimePicker(document.getElementById('commonStart'));
+    const commonEnd     = createTimePicker(document.getElementById('commonEnd'));
+    const commonDays    = document.getElementById('commonDays');
+    const btnApplyCommon= document.getElementById('btnApplyCommon');
 
     const perDayBody = document.getElementById('perDayBody');
 
@@ -328,21 +323,11 @@
     const dateWarn    = document.getElementById('dateWarn');
 
     const btnUpdateAgenda = document.getElementById('btnUpdateAgenda');
-    const agendaSummary = document.getElementById('agendaSummary');
+    const agendaSummary   = document.getElementById('agendaSummary');
 
     const btnMiAgenda = document.getElementById('btnMiAgenda');
 
     /* ====== Render helpers ====== */
-    function buildDatalist(){
-      const dl = document.getElementById('businessList');
-      dl.innerHTML = '';
-      getBusinesses().forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = b.name;
-        dl.appendChild(opt);
-      });
-    }
-
     function renderDayCheckboxes(container){
       container.innerHTML='';
       DAYS.forEach((d,idx)=>{
@@ -352,6 +337,7 @@
         container.appendChild(lab);
       });
     }
+
     function renderPerDayTable(){
       perDayBody.innerHTML='';
       DAYS.forEach((d,idx)=>{
@@ -384,55 +370,86 @@
       });
     }
 
-    /* ====== Eventos ====== */
-    function tryLoadBusiness(){
-      const raw = bizName.value.trim();
-      if(!raw){
-        currentBiz=null;
-        staffSelect.disabled=true;
-        staffSelect.innerHTML='<option value="">— Seleccione —</option>';
-        bizState.textContent='No cargada';
-        bizState.className='badge badge-warn';
-        return;
+    function actualizarEstadoBarberia(){
+      if (negocioActual) {
+        bizName.value = negocioActual.nombre || '';
+        bizName.readOnly = true; // ya no se edita a mano, se toma de la BD
+        bizState.textContent = 'Cargada';
+        bizState.className = 'badge badge-ok';
+      } else {
+        bizName.readOnly = true;
+        bizName.value = '';
+        bizState.textContent = 'No cargada';
+        bizState.className = 'badge badge-warn';
       }
-
-      const slug = normalizeSlug(raw);
-      const plainQuery = normalizePlain(raw); // <- evitar sombra de nombre
-      const list = getBusinesses();
-
-      // Buscar por slug o por nombre plano (más tolerante)
-      const biz = list.find(b =>
-        b.slug === slug ||
-        normalizePlain(b.name) === plainQuery
-      );
-
-      if(!biz){
-        currentBiz=null;
-        staffSelect.disabled=true; staffSelect.innerHTML='<option value="">— Seleccione —</option>';
-        bizState.textContent='No encontrada';
-        bizState.className='badge badge-warn';
-        return;
-      }
-      currentBiz = biz;
-      bizState.textContent='Cargada';
-      bizState.className='badge badge-ok';
-
-      // Popular personal
-      staffSelect.disabled=false;
-      staffSelect.innerHTML='<option value="">— Seleccione —</option>';
-      (biz.staff||[]).forEach(p=>{
-        if(!p.name) return;
-        const opt=document.createElement('option'); opt.value=p.name; opt.textContent=p.name;
-        staffSelect.appendChild(opt);
-      });
     }
 
-    // Dispara búsqueda al teclear, al perder foco y al seleccionar del datalist
-    bizName.addEventListener('input', ()=>{ clearTimeout(bizName._t); bizName._t=setTimeout(tryLoadBusiness, 250); });
-    bizName.addEventListener('blur', tryLoadBusiness);
-    bizName.addEventListener('change', tryLoadBusiness);
+    /* ====== Carga de datos desde Supabase ====== */
+    async function initDatosUsuario(){
+      const ses = cargarSesionLocal();
+      if (!ses || !ses.auth_user_id || !ses.usuario_id){
+        alert('Debes iniciar sesión para organizar tu agenda.');
+        window.location.href = 'interfaz_login.html';
+        return;
+      }
 
-    staffSelect.addEventListener('change', ()=>{ currentStaff = staffSelect.value; });
+      if (Number(ses.rol_id) === 1){
+        // Rol cliente: no debería estar aquí
+        alert('Esta sección es solo para barberos / negocios.');
+        redirigirSegunRol(ses.rol_id);
+        return;
+      }
+
+      const { data: personalRows, error } = await supabase
+        .from('personal')
+        .select('id, nombre_publico, activo, negocio:negocio_id (id, nombre)')
+        .eq('usuario_id', ses.usuario_id)
+        .eq('activo', true);
+
+      if (error){
+        console.error('Error cargando personal:', error);
+        alert('Ocurrió un error al cargar tu información de barbería. Intenta de nuevo más tarde.');
+        return;
+      }
+
+      if (!personalRows || personalRows.length === 0){
+        alert('Tu usuario aún no está vinculado a una barbería. Pide al administrador que te asocie en el módulo de negocio.');
+        negocioActual = null;
+        actualizarEstadoBarberia();
+        staffSelect.disabled = true;
+        return;
+      }
+
+      personalLista = personalRows;
+
+      // Tomamos la barbería del primer registro (lo usual es que sea una sola)
+      negocioActual = personalRows[0].negocio || null;
+      actualizarEstadoBarberia();
+
+      // Poblar select de personal
+      staffSelect.disabled = false;
+      staffSelect.innerHTML = '<option value="">— Seleccione —</option>';
+      personalLista.forEach(p => {
+        if (!p.nombre_publico) return;
+        const opt = document.createElement('option');
+        opt.value = String(p.id);
+        opt.textContent = p.nombre_publico;
+        staffSelect.appendChild(opt);
+      });
+
+      // Si solo hay un barbero asociado, lo seleccionamos por defecto
+      if (personalLista.length === 1){
+        staffSelect.value = String(personalLista[0].id);
+        personalActual = personalLista[0];
+      }
+    }
+
+    /* ====== Eventos ====== */
+
+    staffSelect.addEventListener('change', ()=>{
+      const idSel = Number(staffSelect.value || '0');
+      personalActual = personalLista.find(p => p.id === idSel) || null;
+    });
 
     sameAllWeek.addEventListener('change', ()=>{
       sameWeekBlock.style.display = sameAllWeek.checked ? 'block' : 'none';
@@ -468,7 +485,8 @@
     });
 
     btnSaveDates.addEventListener('click', ()=>{
-      dateStart = dateStartEl.value; dateEnd = dateEndEl.value;
+      dateStart = dateStartEl.value;
+      dateEnd   = dateEndEl.value;
       if(!dateStart || !dateEnd){ alert('Selecciona fecha de inicio y fin.'); return; }
       if(dateEnd < dateStart){ alert('La fecha fin debe ser posterior a la fecha inicio.'); return; }
       const ms = (new Date(dateEnd) - new Date(dateStart));
@@ -483,87 +501,140 @@
       alert('Fechas guardadas.');
     });
 
-    btnUpdateAgenda.addEventListener('click', ()=>{
-      // Validaciones
-      if(!currentBiz){ alert('Primero selecciona una barbería válida.'); return; }
-      if(!currentStaff){ alert('Selecciona el personal.'); return; }
-      if(!dateStart || !dateEnd){ alert('Guarda el rango de fechas.'); return; }
+    btnUpdateAgenda.addEventListener('click', async ()=>{
+      if (!negocioActual){
+        alert('No se pudo identificar la barbería. Revisa que tu usuario esté asociado a un negocio.');
+        return;
+      }
+      if (!personalActual){
+        alert('Selecciona el personal.');
+        return;
+      }
+      if(!dateStart || !dateEnd){
+        alert('Guarda el rango de fechas.');
+        return;
+      }
 
       const workingDays = schedule
         .map((d,i)=>({i,...d}))
         .filter(d=>d.work && d.start && d.end && d.start < d.end);
 
       if(workingDays.length===0){
-        alert('Define al menos un día de trabajo con horario válido.'); return;
+        alert('Define al menos un día de trabajo con horario válido.');
+        return;
       }
+
       // Almuerzo dentro del horario
       for(const d of workingDays){
         if(d.lunchStart && d.lunchEnd){
           if(!(d.start < d.lunchStart && d.lunchEnd < d.end)){
-            alert('El almuerzo en '+DAYS[d.i]+' debe estar dentro del horario laboral.'); return;
+            alert('El almuerzo en '+DAYS[d.i]+' debe estar dentro del horario laboral.');
+            return;
           }
         }
       }
 
-      // Guardar bloque de agenda en localStorage
-      const block = {
-        id: 'sch-' + Date.now(),
-        businessSlug: currentBiz.slug || '',
-        businessName: currentBiz.name || '',
-        staffName: currentStaff,
-        dateStart, dateEnd,
-        schedule: schedule.map(d=>({ ...d })), // copia 7 días
-        createdAt: new Date().toISOString()
-      };
-      const all = getSchedules(); all.push(block); saveSchedules(all);
+      btnUpdateAgenda.disabled = true;
+      const oldText = btnUpdateAgenda.textContent;
+      btnUpdateAgenda.textContent = 'Guardando...';
 
-      // Resumen
-      let lines=[];
-      lines.push(`Barbería: ${block.businessName}`);
-      lines.push(`Personal: ${block.staffName}`);
-      lines.push(`Fechas: ${block.dateStart} → ${block.dateEnd}`);
-      lines.push('Horarios:');
-      workingDays.forEach(d=>{
-        const alm = (d.lunchStart && d.lunchEnd) ? ` | Almuerzo ${d.lunchStart}-${d.lunchEnd}` : '';
-        lines.push(` - ${DAYS[d.i]}: ${d.start}-${d.end}${alm}`);
-      });
+      try{
+        // 1) Crear bloque en conjunto_horario
+        const { data: chData, error: chErr } = await supabase
+          .from('conjunto_horario')
+          .insert({
+            negocio_id: negocioActual.id,
+            personal_id: personalActual.id,
+            fecha_inicio: dateStart,
+            fecha_fin: dateEnd
+          })
+          .select('id')
+          .single();
 
-      const summary = lines.join('\n');
-      agendaSummary.value = summary;
-      sessionStorage.setItem('cy_schedule_preview', summary);
+        if (chErr){
+          console.error('Error insertando conjunto_horario:', chErr);
+          alert('No fue posible guardar la agenda. Intenta de nuevo.');
+          return;
+        }
 
-      alert('Agenda actualizada y guardada.');
+        const chId = chData.id;
+
+        // 2) Crear filas en dia_horario (7 días)
+        const filasDia = schedule.map((d,idx)=>({
+          conjunto_horario_id: chId,
+          dia_semana_id: JS_TO_DB_DIA[idx],
+          trabaja: d.work,
+          hora_inicio: d.work && d.start ? d.start : null,
+          hora_fin:    d.work && d.end   ? d.end   : null,
+          almuerzo_inicio: d.lunchStart || null,
+          almuerzo_fin:    d.lunchEnd   || null
+        }));
+
+        const { error: dhErr } = await supabase
+          .from('dia_horario')
+          .insert(filasDia);
+
+        if (dhErr){
+          console.error('Error insertando dia_horario:', dhErr);
+          alert('No fue posible guardar el detalle de la agenda. Intenta de nuevo.');
+          return;
+        }
+
+        // 3) Resumen para mostrar al usuario
+        let lines=[];
+        lines.push(`Barbería: ${negocioActual.nombre}`);
+        lines.push(`Personal: ${personalActual.nombre_publico}`);
+        lines.push(`Fechas: ${dateStart} → ${dateEnd}`);
+        lines.push('Horarios:');
+        workingDays.forEach(d=>{
+          const alm = (d.lunchStart && d.lunchEnd) ? ` | Almuerzo ${d.lunchStart}-${d.lunchEnd}` : '';
+          lines.push(` - ${DAYS[d.i]}: ${d.start}-${d.end}${alm}`);
+        });
+
+        const summary = lines.join('\n');
+        agendaSummary.value = summary;
+        sessionStorage.setItem('cy_schedule_preview', summary);
+
+        alert('Agenda actualizada y guardada en la base de datos.');
+      } finally {
+        btnUpdateAgenda.disabled = false;
+        btnUpdateAgenda.textContent = oldText;
+      }
     });
 
-    /* ====== Init ====== */
-    document.addEventListener('DOMContentLoaded', ()=>{
-      buildDatalist();
-      renderDayCheckboxes(commonDays);
-      renderDayCheckboxes(lunchDays);
-      renderPerDayTable();
-    });
-
-    /* ====== "Mi agenda" (botón 3.1) ====== */
+    // "Mi agenda": guardamos un pequeño contexto en sessionStorage y redirigimos
     function goMyAgenda(){
-      const nameBiz = (bizName.value || '').trim();
-      const staff   = (staffSelect.value || '').trim();
-
-      if(!nameBiz){ alert('Escribe o selecciona el nombre de la barbería.'); return; }
-      if(!staff){ alert('Ingresa tu nombre para continuar.'); return; }
-
-      const all = getBusinesses();
-      const match = all.find(b => normalizePlain(b.name) === normalizePlain(nameBiz)) || null;
+      if(!negocioActual){
+        alert('No se pudo identificar la barbería.');
+        return;
+      }
+      if(!personalActual){
+        alert('Selecciona el personal antes de ir a "Mi agenda".');
+        return;
+      }
 
       const ctx = {
-        businessSlug: match ? (match.slug || '') : '',
-        businessName: nameBiz,
-        staffName:    staff
+        negocio_id: negocioActual.id,
+        negocio_nombre: negocioActual.nombre,
+        personal_id: personalActual.id,
+        personal_nombre: personalActual.nombre_publico
       };
-      localStorage.setItem(LS_CTX, JSON.stringify(ctx));
-
+      sessionStorage.setItem('cy_lastAgendaView', JSON.stringify(ctx));
       window.location.href = 'interfaz_mi_agenda.html';
     }
     if(btnMiAgenda) btnMiAgenda.addEventListener('click', goMyAgenda);
+
+    /* ====== Init ====== */
+    document.addEventListener('DOMContentLoaded', ()=>{
+      renderDayCheckboxes(commonDays);
+      renderDayCheckboxes(lunchDays);
+      renderPerDayTable();
+      // Cargar barbería y personal del usuario autenticado
+      initDatosUsuario().catch(err=>{
+        console.error('Error en initDatosUsuario:', err);
+        alert('Ocurrió un error inicializando la página de agenda.');
+      });
+    });
   </script>
 
 </body>

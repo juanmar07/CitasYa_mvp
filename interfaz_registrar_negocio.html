@@ -14,159 +14,347 @@
   --banner-h: 64px;
   --page-sidepad: 16px;
   --banner-bg: #e6e9ee;
-  --banner-bg-hover: #d7dbe3;
+  --banner-border: #c6ccd8;
+  --banner-title: #222;
+  --banner-link: #0077cc;
+
+  --body-bg: #f3f5f9;
+  --card-bg: #ffffff;
+  --card-border: #d5d9e2;
+
+  --text-main: #222;
+  --text-muted: #777;
+  --text-error: #c0392b;
+
+  --btn-green: #27ae60;
+  --btn-green-hover: #219150;
+  --btn-blue: #2980b9;
+  --btn-blue-hover: #2471a3;
+  --btn-gray: #7f8c8d;
+  --btn-gray-hover: #707b7c;
+  --btn-red: #c0392b;
+  --btn-red-hover: #a93226;
+
+  --badge-ok-bg: #e8f8f1;
+  --badge-ok-text: #1e8449;
+  --badge-warn-bg: #fff4e5;
+  --badge-warn-text: #d35400;
 }
 
-/* ===== Base ===== */
-body {
-  font-family: 'Open Sans', sans-serif;
-  background-color: #eeeeee;
-  margin: 0;
-  padding: 20px;
-  color: #333;
-  padding-top: calc(var(--banner-h) + 8px);
+/* ===== Reset básico ===== */
+*,
+*::before,
+*::after{
+  box-sizing:border-box;
 }
-.container {
-  position: relative;
-  max-width: var(--container-w);
-  margin: auto;
-  padding: var(--container-pad);
-  background-color: #ffffff;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  border-radius: 10px;
-  border-left: var(--container-bl) solid #5c6bc0;
+
+html,body{
+  margin:0;
+  padding:0;
+  font-family:'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:var(--body-bg);
+  color:var(--text-main);
 }
-h1, h2 {
-  text-align: center;
-  color: #000;
-  font-weight: 600;
-  margin: 20px 0;
+
+/* ===== Banner superior ===== */
+.app-banner{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:var(--banner-bg);
+  border-bottom:1px solid var(--banner-border);
+  box-shadow:0 2px 4px rgba(0,0,0,0.04);
 }
-label {
-  display: block;
-  margin: 10px 0 4px;
-  color: #003366;
-  font-size: 16px;
+
+.banner-box{
+  max-width:var(--container-w);
+  margin:0 auto;
+  padding:0 var(--page-sidepad);
+  height:var(--banner-h);
+  display:flex;
+  align-items:center;
 }
+
+.banner-inner{
+  display:flex;
+  align-items:center;
+  width:100%;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.banner-title{
+  font-weight:600;
+  font-size:18px;
+  color:var(--banner-title);
+}
+
+.banner-logo img{
+  height:40px;
+  width:auto;
+}
+
+.banner-back{
+  text-decoration:none;
+  font-size:14px;
+  color:var(--banner-link);
+  display:inline-flex;
+  align-items:center;
+}
+
+.banner-back:hover{
+  text-decoration:underline;
+}
+
+/* ===== Contenedor principal ===== */
+.container{
+  max-width:var(--container-w);
+  margin:16px auto 40px auto;
+  padding:var(--container-pad);
+  border-radius:var(--container-bl);
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  box-shadow:0 4px 12px rgba(0,0,0,0.04);
+}
+
+h1{
+  margin-top:0;
+  font-size:24px;
+  margin-bottom:6px;
+}
+
+.subtitle{
+  margin:0 0 16px 0;
+  color:var(--text-muted);
+  font-size:14px;
+}
+
+/* ===== Secciones ===== */
+section{
+  margin-bottom:24px;
+}
+
+section h2{
+  font-size:18px;
+  margin-bottom:8px;
+  border-bottom:1px solid #edf0f4;
+  padding-bottom:4px;
+}
+
+/* ===== Formularios ===== */
+label{
+  display:block;
+  font-size:14px;
+  margin-top:10px;
+  margin-bottom:4px;
+}
+
 input[type="text"],
 input[type="email"],
-input[type="tel"],
 input[type="password"],
-select {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid #dddddd;
-  border-radius: 5px;
-  box-sizing: border-box;
-  font-size: 16px;
-  transition: border-color 0.3s;
+input[type="number"],
+select{
+  width:100%;
+  padding:8px 10px;
+  border-radius:4px;
+  border:1px solid #ccd1dd;
+  font-size:14px;
+  outline:none;
+  transition:border-color 0.15s, box-shadow 0.15s;
+  background:#fff;
 }
-input:focus, select:focus { outline: none; border-color: #7da2a9; }
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+select:focus{
+  border-color:#2980b9;
+  box-shadow:0 0 0 2px rgba(41,128,185,0.12);
+}
+
+small{
+  display:block;
+  font-size:12px;
+  color:var(--text-muted);
+}
+
+/* ===== Tabla de servicios / personal ===== */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+  font-size:13px;
+}
+
+thead th{
+  text-align:left;
+  padding:6px 8px;
+  border-bottom:1px solid #e0e4ec;
+  background:#f7f8fb;
+  font-weight:600;
+}
+
+tbody td{
+  padding:6px 8px;
+  border-bottom:1px solid #f0f1f5;
+  vertical-align:top;
+}
+
+tbody tr:last-child td{
+  border-bottom:none;
+}
+
+tbody tr:nth-child(even){
+  background:#fafbff;
+}
 
 /* ===== Botones ===== */
 .btn{
-  display:block;
-  border:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 16px;
+  border-radius:999px;
+  border:1px solid transparent;
+  font-size:14px;
   cursor:pointer;
   font-weight:600;
-  transition: background-color .2s, transform .2s;
-  padding:12px 20px;
-  border-radius:5px;
-  width:100%;
-  margin:10px 0;
-  font-size:16px;
+  text-decoration:none;
+  outline:none;
+  transition:background 0.15s, border-color 0.15s, transform 0.05s;
+}
+
+.btn:active{
+  transform:translateY(1px);
+}
+
+.btn-green{
+  background:var(--btn-green);
+  border-color:var(--btn-green);
   color:#fff;
 }
-.btn:hover{ transform: translateY(-1px); }
 
-.btn-blue{ background:#5c6bc0; }
-.btn-blue:hover{ background:#3f51b5; }
-.btn-green{ background:#66bb6a; }
-.btn-green:hover{ background:#43a047; }
-.btn-red{ background:#ef5350; }
-.btn-red:hover{ background:#e53935; }
-
-.btn-icon{
-  display:inline-block; padding:4px 8px; margin-right:4px;
-  border-radius:4px; font-size:14px; width:auto; color:#fff;
+.btn-green:hover{
+  background:var(--btn-green-hover);
+  border-color:var(--btn-green-hover);
 }
-.btn-icon-blue{ background:#5c6bc0; }
-.btn-icon-blue:hover{ background:#3f51b5; }
-.btn-icon-red{ background:#ef5350; }
-.btn-icon-red:hover{ background:#e53935; }
 
-/* Botones 3/4 centrados */
+.btn-blue{
+  background:var(--btn-blue);
+  border-color:var(--btn-blue);
+  color:#fff;
+}
+
+.btn-blue:hover{
+  background:var(--btn-blue-hover);
+  border-color:var(--btn-blue-hover);
+}
+
+.btn-gray{
+  background:var(--btn-gray);
+  border-color:var(--btn-gray);
+  color:#fff;
+}
+
+.btn-gray:hover{
+  background:var(--btn-gray-hover);
+  border-color:var(--btn-gray-hover);
+}
+
+.btn-red{
+  background:var(--btn-red);
+  border-color:var(--btn-red);
+  color:#fff;
+}
+
+.btn-red:hover{
+  background:var(--btn-red-hover);
+  border-color:var(--btn-red-hover);
+}
+
 .btn-slim{
-  width: min(640px, 75%);
-  margin: 12px auto;
+  padding:6px 14px;
+  font-size:13px;
 }
 
-/* Forzar “Agregar” en azul */
-#addService.btn, #addStaff.btn{ background:#5c6bc0 !important; }
-#addService.btn:hover, #addStaff.btn:hover{ background:#3f51b5 !important; }
+/* Botones íconos pequeños dentro de tabla */
+.btn-icon{
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid transparent;
+  cursor:pointer;
+  margin-right:4px;
+}
 
-/* Tablas / ayudas */
-table{ width:100%; border-collapse:collapse; margin-bottom:10px; }
-th, td{ padding:8px; text-align:left; }
-th{ background:#f5f5f5; color:#555; font-weight:600; }
-.token-preview{ color:#666; font-size:14px; }
-small{ color:#555; }
-.error{ display:block; color:#d32f2f; font-size:14px; }
+.btn-icon-blue{
+  background:var(--btn-blue);
+  border-color:var(--btn-blue);
+  color:#fff;
+}
+
+.btn-icon-blue:hover{
+  background:var(--btn-blue-hover);
+  border-color:var(--btn-blue-hover);
+}
+
+.btn-icon-red{
+  background:var(--btn-red);
+  border-color:var(--btn-red);
+  color:#fff;
+}
+
+.btn-icon-red:hover{
+  background:var(--btn-red-hover);
+  border-color:var(--btn-red-hover);
+}
+
+/* ===== Badges / estados ===== */
 .badge{
-  display:inline-block; padding:4px 8px; border-radius:999px;
-  font-size:12px; line-height:1; margin-left:8px;
+  display:inline-flex;
+  align-items:center;
+  font-size:11px;
+  padding:2px 8px;
+  border-radius:999px;
+  margin-left:8px;
 }
-.badge-ok{ background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; }
-.badge-warn{ background:#fff3e0; color:#ef6c00; border:1px solid #ffe0b2; }
 
-/* ===== Banner ===== */
-.app-banner{
-  position: fixed; top: 0; left: 0; right: 0; height: var(--banner-h);
-  z-index: 9999; background: transparent;
+.badge-ok{
+  background:var(--badge-ok-bg);
+  color:var(--badge-ok-text);
 }
-.app-banner .banner-box{
-  height: 100%;
-  width: min(calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl)),
-             calc(100% - var(--page-sidepad)*2));
-  margin: 0 auto;
-  background: var(--banner-bg);
-  border-bottom: 1px solid rgba(0,0,0,.06);
-  border-radius: 10px;
-  transition: background-color .2s ease;
-  display: flex; align-items: center;
-}
-.app-banner .banner-box:hover,
-.app-banner .banner-box:focus-within{ background: var(--banner-bg-hover); }
-.app-banner .banner-inner{
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  gap: 8px; width: 100%; padding: 0 12px;
-}
-.banner-back{ justify-self: start; }
-.banner-title{ justify-self: center; font-weight: 700; color: #233247; }
-.banner-logo{ justify-self: end; display: inline-flex; align-items: center; }
-.banner-logo img{ width: 52px; height: auto; display: block; }
 
-.back-button{
-  display:inline-block; text-decoration:none; font-size:14px; color:#5c6bc0;
-  padding:8px 12px; border:1px solid #5c6bc0; border-radius:6px;
-  transition: background-color .2s, color .2s;
+.badge-warn{
+  background:var(--badge-warn-bg);
+  color:var(--badge-warn-text);
 }
-.back-button:hover{ background:#5c6bc0; color:#fff; }
 
-/* Footer legal */
+/* ===== Errores ===== */
+.error{
+  display:block;
+  font-size:11px;
+  color:var(--text-error);
+  margin-top:2px;
+}
+
+/* ===== Sección de resumen ===== */
+#datos-resumen pre{
+  background:#f7f8fc;
+  border-radius:4px;
+  padding:10px;
+  font-size:13px;
+  border:1px solid #e0e4ec;
+}
+
+/* ===== Pie de página sencillo ===== */
 .legal-outside{
-  margin: 18px auto 24px;
-  padding: 10px 12px;
-  max-width: calc(var(--container-w) + var(--container-pad)*2 + var(--container-bl));
-  text-align: center; color: #666; font-size: 14px; line-height: 1.35;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  h1{ font-size:22px; }
-  h2{ font-size:18px; }
-  label, button{ font-size:14px; }
-  .btn-slim{ width:100%; }
+  max-width:var(--container-w);
+  margin:0 auto 30px auto;
+  padding:0 var(--page-sidepad);
+  font-size:12px;
+  color:var(--text-muted);
+  text-align:center;
 }
   </style>
 </head>
@@ -187,6 +375,9 @@ small{ color:#555; }
 
 <div class="container">
   <h1>Registrar Negocio</h1>
+  <p class="subtitle">
+    Aquí configuras tu barbería/peluquería: datos básicos, responsable y servicios que ofreces.
+  </p>
 
   <!-- Datos del negocio -->
   <section id="datos-negocio">
@@ -220,29 +411,29 @@ small{ color:#555; }
     <input type="text" id="ownerName">
     <span class="error" id="error-ownerName"></span>
 
-    <label for="ownerEmail">Correo</label>
-    <input type="email" id="ownerEmail">
+    <label for="ownerEmail">Correo electrónico (será tu usuario de acceso)</label>
+    <input type="email" id="ownerEmail" placeholder="ejemplo@correo.com">
     <span class="error" id="error-ownerEmail"></span>
 
-    <label for="ownerPhone">Teléfono</label>
-    <input type="tel" id="ownerPhone" placeholder="Ej: 3001234567">
+    <label for="ownerPhone">Teléfono de contacto</label>
+    <input type="text" id="ownerPhone" placeholder="Solo números, ej: 3001234567">
     <span class="error" id="error-ownerPhone"></span>
 
-    <label for="ownerPass">Contraseña <small>(mínimo 6 caracteres)</small></label>
+    <label for="ownerPass">Contraseña (mínimo 6 caracteres)</label>
     <input type="password" id="ownerPass">
     <span class="error" id="error-ownerPass"></span>
   </section>
 
   <!-- Servicios -->
   <section id="datos-servicios">
-    <h2>Servicios del establecimiento</h2>
+    <h2>Servicios que ofreces</h2>
     <table>
       <thead>
         <tr>
           <th>Servicio</th>
           <th>Duración (min)</th>
-          <th>Precio (COP)</th>
-          <th>Tokens</th>
+          <th>Precio aprox. (COP)</th>
+          <th>Tokens aprox.</th>
           <th></th>
         </tr>
       </thead>
@@ -282,490 +473,995 @@ small{ color:#555; }
 
   <!-- Registrar / Actualizar -->
   <section id="registro-final" style="display:none;">
-    <button type="button" id="registerBusiness" class="btn btn-green btn-slim">Registrar/Actualizar negocio</button>
+    <h2>Registrar negocio</h2>
+    <p class="subtitle">
+      Si todo está correcto, haz clic en <strong>Registrar negocio</strong> para guardar la información.
+    </p>
+    <button type="button" id="registerBusiness" class="btn btn-green">Registrar negocio</button>
   </section>
 </div>
 
-<!-- Footer legal -->
 <div class="legal-outside">
   Todos los derechos reservados © 2025<br>
   Citas Ya S.A.S - Nit 810.000.000-0
 </div>
 
-<script>
+<script type="module">
+  import { supabase } from './supabaseClient.js';
+  import { cargarSesionLocal } from './dataCitasYa.js';
+
   /* ========= Normalización y utilidades ========= */
-  const normalizeSlug = (str='') =>
+  const normalizeSlug = (str = '') =>
     str.normalize('NFD')
-       .replace(/[\u0300-\u036f]/g,'')    // quita acentos
+       .replace(/[\u0300-\u036f]/g, '')
        .toLowerCase()
-       .replace(/[^a-z0-9]+/g,' ')         // no alfanum => espacio
+       .replace(/[^a-z0-9]+/g, ' ')
        .trim()
-       .replace(/\s+/g,'-');               // espacios => guion
-  
+       .replace(/\s+/g, '-');
+
   const fmtCOP = n => {
     const num = Number(n);
     return Number.isFinite(num) ? num.toLocaleString('es-CO') : '';
   };
-  function debounce(fn, d){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),d); }; }
-  function parseCOPInput(str){
-    if (str===''||str==null) return '';
-    const d=String(str).replace(/[^\d]/g,'');
-    return d?Number(d):'';
+
+  function debounce(fn, delay) {
+    let t;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), delay);
+    };
   }
-  function formatCOPInput(inputEl, value){ inputEl.value = value === '' ? '' : fmtCOP(value); }
-  const computeTokens = mins => Math.max(1, Math.ceil(mins/30));
-  const approxTokens = mins => `≈ ${computeTokens(mins)} token${computeTokens(mins)>1?'s':''}`;
-  
-  /* ========= Storage de negocios (localStorage) ========= */
-  const LS_KEY = 'cy_businesses'; // lista completa de negocios
-  const SS_DRAFT = 'cy_shop_draft'; // borrador sesión
+
+  function parseCOPInput(str) {
+    if (str === '' || str == null) return '';
+    const d = String(str).replace(/[^\d]/g, '');
+    return d ? Number(d) : '';
+  }
+
+  function formatCOPInput(inputEl, value) {
+    inputEl.value = value === '' ? '' : fmtCOP(value);
+  }
+
+  const computeTokens = mins => Math.max(1, Math.ceil(mins / 30));
+  const approxTokens = mins => `≈ ${computeTokens(mins)} token${computeTokens(mins) > 1 ? 's' : ''}`;
+
+  /* ========= Estado de sesión ========= */
+  const sesion = cargarSesionLocal();
+  if (!sesion) {
+    // Si no hay sesión, enviamos al inicio de sesión
+    window.location.href = 'interfaz_inicio_s.html';
+  }
+
+  /* ========= Storage de borrador (solo sesión (no se usa almacenamiento local de negocios)) ========= */
+  const SS_DRAFT = 'cy_shop_draft';
   const SS_SUBMITTED = 'cy_shop_submitted';
   const SS_REGISTERED = 'cy_shop_registered';
-  
-  const getBusinesses = () => {
-    try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; }
-    catch(e){ return []; }
-  };
-  const saveBusinesses = (list=[]) => localStorage.setItem(LS_KEY, JSON.stringify(list));
-  
-  function upsertBusiness(biz){
-    const list = getBusinesses();
-    const idx = list.findIndex(b => b.slug === biz.slug);
-    if (idx >= 0) list[idx] = biz; else list.push(biz);
-    saveBusinesses(list);
-    return list;
-  }
-  
-  /* ========= Autocompletar barberías ========= */
-  function refreshBusinessDatalist(){
-    const dl = document.getElementById('businessList');
-    dl.innerHTML = '';
-    getBusinesses().forEach(b => {
-      const opt = document.createElement('option');
-      opt.value = b.name; // visible original
-      dl.appendChild(opt);
-    });
-  }
-  
-  /* ========= Dirección / ubicación ========= */
+
+  /* ========= Referencias DOM ========= */
   const shopName = document.getElementById('shopName');
   const businessStatus = document.getElementById('businessStatus');
-  
+
   const shopAddress = document.getElementById('shopAddress');
   const shopLat = document.getElementById('shopLat');
   const shopLng = document.getElementById('shopLng');
   const addressPreview = document.getElementById('addressPreview');
-  
-  function updateAddressPreview(){
-    addressPreview.textContent = shopAddress.value ? `Dirección: ${shopAddress.value}` : '';
-  }
-  shopAddress.addEventListener('input', ()=>{ updateAddressPreview(); debouncedSave(); });
-  
-  /* ========= Servicios ========= */
+
+  const ownerName = document.getElementById('ownerName');
+  const ownerEmail = document.getElementById('ownerEmail');
+  const ownerPhone = document.getElementById('ownerPhone');
+  const ownerPass = document.getElementById('ownerPass');
+
+  const servicesBody = document.getElementById('servicesBody');
+  const staffBody = document.getElementById('staffBody');
+  const summaryText = document.getElementById('summaryText');
+  const summarySection = document.getElementById('datos-resumen');
+  const registerSection = document.getElementById('registro-final');
+
+  /* ========= Estado local (UI) ========= */
   let services = [];
   let serviceIdCounter = 0;
-  const servicesBody = document.getElementById('servicesBody');
-  
-  function createService(name='', duration=30, price=''){
-    return { id:`srv-${serviceIdCounter++}`, name, durationMins:duration, priceCOP:price, order:services.length };
-  }
-  function renderServices(){
-    services.sort((a,b)=>a.order-b.order);
-    servicesBody.innerHTML = '';
-    services.forEach((srv, idx)=>{
-      srv.order = idx;
-      const tr = document.createElement('tr'); tr.dataset.id=srv.id;
-  
-      // Nombre
-      const nameTd=document.createElement('td');
-      const nameInput=document.createElement('input');
-      nameInput.type='text';
-      nameInput.value=srv.name;
-      nameInput.className='service-name';
-      nameInput.placeholder='Ej: Corte clásico';
-      nameInput.addEventListener('input', e=>{
-        srv.name=e.target.value;
-        // ACTUALIZA inmediatamente la columna "Servicios que ofrece" del personal
-        syncStaffServiceColumns();
-        debouncedSave();
-      });
-      nameTd.appendChild(nameInput);
-      const nameErr=document.createElement('span'); nameErr.className='error name-error'; nameTd.appendChild(nameErr);
-  
-      // Duración
-      const durTd=document.createElement('td');
-      const durInput=document.createElement('input');
-      durInput.type='number'; durInput.min='20'; durInput.max='120'; durInput.step='10';
-      durInput.value=srv.durationMins;
-      durInput.className='service-duration';
-      durInput.placeholder='20–120 (x10)';
-      durInput.addEventListener('input', e=>{
-        let v=parseInt(e.target.value,10);
-        if(isNaN(v)) v=20;
-        v=Math.min(120, Math.max(20, v));
-        v=Math.round(v/10)*10;
-        e.target.value=v;
-        srv.durationMins=v;
-        tr.querySelector('.token-preview').textContent=approxTokens(srv.durationMins);
-        debouncedSave();
-      });
-      durTd.appendChild(durInput);
-      const durErr=document.createElement('span'); durErr.className='error dur-error'; durTd.appendChild(durErr);
-  
-      // Precio
-      const priceTd=document.createElement('td');
-      const priceInput=document.createElement('input');
-      priceInput.type='text';
-      priceInput.inputMode='numeric';
-      priceInput.placeholder='Ej: 18.000';
-      priceInput.value = srv.priceCOP==='' ? '' : fmtCOP(srv.priceCOP);
-      priceInput.className='service-price';
-      priceInput.addEventListener('input', e=>{
-        // Guardar inmediatamente y limpiar mensaje de error de ese campo
-        srv.priceCOP=parseCOPInput(e.target.value);
-        const priceErr = priceTd.querySelector('.price-error');
-        if (priceErr) priceErr.textContent = '';
-        debouncedSave();
-      });
-      priceInput.addEventListener('blur', ()=>{
-        formatCOPInput(priceInput, srv.priceCOP);
-      });
-      priceTd.appendChild(priceInput);
-      const priceErr=document.createElement('span'); priceErr.className='error price-error'; priceTd.appendChild(priceErr);
-  
-      // Tokens preview
-      const tokenTd=document.createElement('td');
-      const tokenSpan=document.createElement('span'); tokenSpan.className='token-preview'; tokenSpan.textContent=approxTokens(srv.durationMins);
-      tokenTd.appendChild(tokenSpan);
-  
-      // Acciones
-      const actionTd=document.createElement('td');
-      const upBtn=document.createElement('button'); upBtn.type='button'; upBtn.textContent='↑'; upBtn.className='btn-icon btn-icon-blue';
-      upBtn.addEventListener('click',()=>{ moveService(srv.id,-1); });
-      const downBtn=document.createElement('button'); downBtn.type='button'; downBtn.textContent='↓'; downBtn.className='btn-icon btn-icon-blue';
-      downBtn.addEventListener('click',()=>{ moveService(srv.id,1); });
-      const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.textContent='✕'; delBtn.className='btn-icon btn-icon-red';
-      delBtn.addEventListener('click',()=>{ if(confirm('¿Eliminar este servicio?')) removeService(srv.id); });
-      actionTd.append(upBtn,downBtn,delBtn);
-  
-      tr.append(nameTd,durTd,priceTd,tokenTd,actionTd);
-      servicesBody.appendChild(tr);
-    });
-    syncStaffServiceColumns();
-  }
-  function addServiceRow(service=createService()){ services.push(service); renderServices(); debouncedSave(); }
-  function moveService(id,dir){ const i=services.findIndex(s=>s.id===id); const ni=i+dir; if(ni<0||ni>=services.length) return; [services[i],services[ni]]=[services[ni],services[i]]; renderServices(); debouncedSave(); }
-  function removeService(id){ services = services.filter(s=>s.id!==id); staff.forEach(p=>{ delete p.offers[id]; }); renderServices(); debouncedSave(); }
-  
-  /* ========= Personal ========= */
+
   let staff = [];
   let staffIdCounter = 0;
-  const staffBody = document.getElementById('staffBody');
-  
-  function createStaff(name=''){ return { id:`stf-${staffIdCounter++}`, name, offers:{} }; }
-  function renderStaff(){
-    staffBody.innerHTML='';
-    staff.forEach(person=>{
-      const tr=document.createElement('tr'); tr.dataset.id=person.id;
-  
-      const nameTd=document.createElement('td');
-      const nameInput=document.createElement('input'); nameInput.type='text'; nameInput.value=person.name; nameInput.className='staff-name'; nameInput.placeholder='Ej: Juan Pérez';
-      nameInput.addEventListener('input', e=>{ person.name=e.target.value; debouncedSave(); });
+
+  // Identificadores en BD (si ya existe negocio)
+  let currentNegocioId = null;
+  let ownerPersonalId = null;
+
+  /* ========= Dirección / ubicación ========= */
+  function updateAddressPreview() {
+    addressPreview.textContent = shopAddress.value
+      ? `Dirección: ${shopAddress.value}`
+      : '';
+  }
+  shopAddress.addEventListener('input', () => {
+    updateAddressPreview();
+    debouncedSave();
+  });
+
+  /* ========= Servicios ========= */
+  function createService(name = '', duration = 30, price = '') {
+    return {
+      id: `srv-${serviceIdCounter++}`,
+      name,
+      durationMins: duration,
+      priceCOP: price,
+      order: services.length,
+    };
+  }
+
+  function renderServices() {
+    services.sort((a, b) => a.order - b.order);
+    servicesBody.innerHTML = '';
+
+    services.forEach((srv, idx) => {
+      srv.order = idx;
+      const tr = document.createElement('tr');
+      tr.dataset.id = srv.id;
+
+      // Nombre
+      const nameTd = document.createElement('td');
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'service-name';
+      nameInput.value = srv.name;
+      nameInput.placeholder = 'Nombre del servicio';
+      nameInput.addEventListener('input', () => {
+        srv.name = nameInput.value;
+        debouncedSave();
+      });
+      const nameErr = document.createElement('span');
+      nameErr.className = 'error name-error';
       nameTd.appendChild(nameInput);
-      const nameErr=document.createElement('span'); nameErr.className='error'; nameTd.appendChild(nameErr);
-  
-      const servicesTd=document.createElement('td'); servicesTd.className='staff-services';
-  
-      const actionTd=document.createElement('td');
-      const delBtn=document.createElement('button'); delBtn.type='button'; delBtn.textContent='✕'; delBtn.className='btn-icon btn-icon-red';
-      delBtn.addEventListener('click',()=>{ if(confirm('¿Eliminar este personal?')) removeStaff(person.id); });
-  
-      tr.appendChild(nameTd); tr.appendChild(servicesTd); actionTd.appendChild(delBtn); tr.appendChild(actionTd);
+      nameTd.appendChild(nameErr);
+
+      // Duración
+      const durTd = document.createElement('td');
+      const durInput = document.createElement('input');
+      durInput.type = 'number';
+      durInput.className = 'service-duration';
+      durInput.min = '20';
+      durInput.max = '120';
+      durInput.step = '10';
+      durInput.value = srv.durationMins;
+      const tokenTd = document.createElement('td');
+      const tokenSpan = document.createElement('span');
+      tokenSpan.className = 'token-preview';
+      tokenSpan.textContent = approxTokens(srv.durationMins);
+      tokenTd.appendChild(tokenSpan);
+      durInput.addEventListener('input', () => {
+        const v = Number(durInput.value || 0);
+        srv.durationMins = v;
+        tokenSpan.textContent = approxTokens(srv.durationMins);
+        debouncedSave();
+      });
+      const durErr = document.createElement('span');
+      durErr.className = 'error dur-error';
+      durTd.appendChild(durInput);
+      durTd.appendChild(durErr);
+
+      // Precio
+      const priceTd = document.createElement('td');
+      const priceInput = document.createElement('input');
+      priceInput.type = 'text';
+      priceInput.inputMode = 'numeric';
+      priceInput.className = 'service-price';
+      formatCOPInput(priceInput, srv.priceCOP);
+      priceInput.addEventListener('input', () => {
+        const parsed = parseCOPInput(priceInput.value);
+        srv.priceCOP = parsed;
+        formatCOPInput(priceInput, parsed);
+        debouncedSave();
+      });
+      const priceErr = document.createElement('span');
+      priceErr.className = 'error price-error';
+      priceTd.appendChild(priceInput);
+      priceTd.appendChild(priceErr);
+
+      // Acciones
+      const actionTd = document.createElement('td');
+      const upBtn = document.createElement('button');
+      upBtn.type = 'button';
+      upBtn.textContent = '↑';
+      upBtn.className = 'btn-icon btn-icon-blue';
+      upBtn.addEventListener('click', () => {
+        moveService(srv.id, -1);
+      });
+      const downBtn = document.createElement('button');
+      downBtn.type = 'button';
+      downBtn.textContent = '↓';
+      downBtn.className = 'btn-icon btn-icon-blue';
+      downBtn.addEventListener('click', () => {
+        moveService(srv.id, 1);
+      });
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '✕';
+      delBtn.className = 'btn-icon btn-icon-red';
+      delBtn.addEventListener('click', () => {
+        if (confirm('¿Eliminar este servicio?')) removeService(srv.id);
+      });
+      actionTd.append(upBtn, downBtn, delBtn);
+
+      tr.append(nameTd, durTd, priceTd, tokenTd, actionTd);
+      servicesBody.appendChild(tr);
+    });
+
+    syncStaffServiceColumns();
+  }
+
+  function addServiceRow(service = createService()) {
+    services.push(service);
+    renderServices();
+    debouncedSave();
+  }
+
+  function moveService(id, dir) {
+    const i = services.findIndex(s => s.id === id);
+    if (i < 0) return;
+    const ni = i + dir;
+    if (ni < 0 || ni >= services.length) return;
+    [services[i], services[ni]] = [services[ni], services[i]];
+    renderServices();
+    debouncedSave();
+  }
+
+  function removeService(id) {
+    services = services.filter(s => s.id !== id);
+    staff.forEach(p => {
+      if (p.offers && p.offers[id]) {
+        delete p.offers[id];
+      }
+    });
+    renderServices();
+    debouncedSave();
+  }
+
+  /* ========= Personal ========= */
+  function createStaff(name = '') {
+    return {
+      id: `stf-${staffIdCounter++}`,
+      name,
+      offers: {},
+    };
+  }
+
+  function renderStaff() {
+    staffBody.innerHTML = '';
+    staff.forEach(person => {
+      const tr = document.createElement('tr');
+      tr.dataset.id = person.id;
+
+      const nameTd = document.createElement('td');
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'staff-name';
+      nameInput.value = person.name;
+      nameInput.placeholder = 'Nombre del barbero';
+      nameInput.addEventListener('input', () => {
+        person.name = nameInput.value;
+        debouncedSave();
+      });
+      const err = document.createElement('span');
+      err.className = 'error';
+      nameTd.appendChild(nameInput);
+      nameTd.appendChild(err);
+
+      const servicesTd = document.createElement('td');
+      servicesTd.className = 'staff-services';
+
+      const actionTd = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '✕';
+      delBtn.className = 'btn-icon btn-icon-red';
+      delBtn.addEventListener('click', () => {
+        if (confirm('¿Eliminar este personal?')) removeStaff(person.id);
+      });
+      actionTd.appendChild(delBtn);
+
+      tr.appendChild(nameTd);
+      tr.appendChild(servicesTd);
+      tr.appendChild(actionTd);
       staffBody.appendChild(tr);
     });
     syncStaffServiceColumns();
   }
-  function syncStaffServiceColumns(){
-    staff.forEach(person=>{
-      const tr=staffBody.querySelector(`tr[data-id='${person.id}']`); if(!tr) return;
-      const servicesTd=tr.querySelector('.staff-services'); servicesTd.innerHTML='';
-      services.forEach(service=>{
-        const label=document.createElement('label'); label.style.marginRight='12px';
-        const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!person.offers[service.id];
-        cb.addEventListener('change',()=>{ person.offers[service.id]=cb.checked; debouncedSave(); });
+
+  function syncStaffServiceColumns() {
+    staff.forEach(person => {
+      const tr = staffBody.querySelector(`tr[data-id='${person.id}']`);
+      if (!tr) return;
+      const servicesTd = tr.querySelector('.staff-services');
+      servicesTd.innerHTML = '';
+
+      services.forEach(service => {
+        const label = document.createElement('label');
+        label.style.marginRight = '12px';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        if (!person.offers) person.offers = {};
+        cb.checked = !!person.offers[service.id];
+        cb.addEventListener('change', () => {
+          person.offers[service.id] = cb.checked;
+          debouncedSave();
+        });
         const labelText = service.name && service.name.trim() ? service.name : '(sin nombre)';
-        label.appendChild(cb); label.appendChild(document.createTextNode(' ' + labelText));
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + labelText));
         servicesTd.appendChild(label);
       });
     });
   }
-  function addStaffRow(person=createStaff()){ staff.push(person); renderStaff(); debouncedSave(); }
-  function removeStaff(id){ staff = staff.filter(p=>p.id!==id); renderStaff(); debouncedSave(); }
-  
-  /* ========= Validaciones ========= */
-  function clearErrors(){ document.querySelectorAll('.error').forEach(el=>el.textContent=''); }
-  function validateForm(data){
-    clearErrors(); let valid=true; let first=null;
-  
-    const shopNameEl=document.getElementById('shopName');
-    if(!data.shop.name){ document.getElementById('error-shopName').textContent='Requerido'; first=first||shopNameEl; valid=false; }
-  
-    const addressEl=document.getElementById('shopAddress');
-    if(!data.shop.address){ document.getElementById('error-shopAddress').textContent='Requerido'; first=first||addressEl; valid=false; }
-  
-    const ownerNameEl=document.getElementById('ownerName');
-    if(!data.owner.fullName){ document.getElementById('error-ownerName').textContent='Requerido'; first=first||ownerNameEl; valid=false; }
-  
-    // CORREO: regex más robusta
-    const emailPattern=/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-    const ownerEmailEl=document.getElementById('ownerEmail');
-    if(!emailPattern.test(data.owner.email)){ document.getElementById('error-ownerEmail').textContent='Correo inválido'; first=first||ownerEmailEl; valid=false; }
-  
-    // TEL: acepta espacios, guiones, etc. y valida que queden 10 dígitos
-    const phoneDigits = data.owner.phone.replace(/\D/g,'');
-    const ownerPhoneEl=document.getElementById('ownerPhone');
-    if(phoneDigits.length!==10){ document.getElementById('error-ownerPhone').textContent='Teléfono inválido'; first=first||ownerPhoneEl; valid=false; }
-    else { data.owner.phone = phoneDigits; }
-  
-    const ownerPassEl=document.getElementById('ownerPass');
-    if(data.owner.password.length<6){ document.getElementById('error-ownerPass').textContent='Mínimo 6 caracteres'; first=first||ownerPassEl; valid=false; }
-  
-    if(data.services.length===0){ document.getElementById('error-services').textContent='Agrega al menos un servicio'; valid=false; }
-    const seen=new Set();
-    data.services.forEach(s=>{
-      const row=servicesBody.querySelector(`tr[data-id='${s.id}']`); if(!row) return;
-      const nameInput=row.querySelector('.service-name'); const nameErr=row.querySelector('.name-error');
-      const priceInput=row.querySelector('.service-price'); const priceErr=row.querySelector('.price-error');
-      const durInput=row.querySelector('.service-duration'); const durErr=row.querySelector('.dur-error');
-  
-      const nameTrim=s.name.trim();
-      if(!nameTrim){ nameErr.textContent='Requerido'; first=first||nameInput; valid=false; }
-      else{
-        const key=nameTrim.toLowerCase();
-        if(seen.has(key)){ nameErr.textContent='Duplicado'; first=first||nameInput; valid=false; }
-        else { nameErr.textContent=''; }
-        seen.add(key);
-      }
-  
-      if(s.priceCOP===''||s.priceCOP<0){ priceErr.textContent='Precio inválido'; first=first||priceInput; valid=false; }
-      else { priceErr.textContent=''; }
-  
-      if(s.durationMins<20||s.durationMins>120||(s.durationMins%10)!==0){
-        durErr.textContent='Duración inválida (20–120, x10)'; first=first||durInput; valid=false;
-      } else {
-        durErr.textContent='';
-      }
-    });
-  
-    staff.forEach(st=>{
-      const row=staffBody.querySelector(`tr[data-id='${st.id}']`); if(!row) return;
-      const nameInput=row.querySelector('.staff-name'); const err=row.querySelector('.error');
-      const hasOffers=Object.values(st.offers).some(Boolean);
-      if(st.name.trim()&&!hasOffers){ err.textContent='Seleccione un servicio'; first=first||row.querySelector('.staff-services input'); valid=false; }
-      if(!st.name.trim()&&hasOffers){ err.textContent='Nombre requerido'; first=first||nameInput; valid=false; }
-      if(st.name.trim() && hasOffers){ err.textContent=''; }
-    });
-  
-    if(first) first.focus();
-    return valid;
-  }
-  
-  /* ========= Draft sesión ========= */
-  function getFormData(){
-    return {
-      shop:{
-        name:document.getElementById('shopName').value.trim(),
-        slug: normalizeSlug(document.getElementById('shopName').value.trim()),
-        address:document.getElementById('shopAddress').value.trim(),
-        lat:document.getElementById('shopLat').value,
-        lng:document.getElementById('shopLng').value
-      },
-      owner:{
-        fullName:document.getElementById('ownerName').value.trim(),
-        email:document.getElementById('ownerEmail').value.trim(),
-        phone:document.getElementById('ownerPhone').value.trim(),
-        password:document.getElementById('ownerPass').value
-      },
-      services: services.map(s=>({ id:s.id, name:s.name.trim(), durationMins:s.durationMins, priceCOP:s.priceCOP===''?'':Number(s.priceCOP), order:s.order })),
-      staff: staff.map(p=>({ id:p.id, name:p.name.trim(), offers:p.offers }))
-    };
-  }
-  const saveDraft = ()=> sessionStorage.setItem(SS_DRAFT, JSON.stringify(getFormData()));
-  const debouncedSave = debounce(saveDraft, 300);
-  
-  /* ========= Carga de negocio existente por nombre ========= */
-  function loadBusinessIntoForm(biz){
-    // Datos base
-    shopName.value = biz.name || '';
-    document.getElementById('shopAddress').value = biz.address || '';
-    document.getElementById('shopLat').value = biz.lat || '';
-    document.getElementById('shopLng').value = biz.lng || '';
-    updateAddressPreview();
-  
-    // Responsable
-    document.getElementById('ownerName').value  = (biz.owner && biz.owner.fullName) || '';
-    document.getElementById('ownerEmail').value = (biz.owner && biz.owner.email) || '';
-    document.getElementById('ownerPhone').value = (biz.owner && biz.owner.phone) || '';
-    document.getElementById('ownerPass').value  = (biz.owner && biz.owner.password) || '';
-  
-    // Servicios / Personal (respetando ids)
-    services = (biz.services || []).map(s => ({ ...s }));
-    serviceIdCounter = services.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0) + 1;
-  
-    staff = (biz.staff || []).map(p => ({ ...p, offers:{ ...(p.offers||{}) } }));
-    staffIdCounter = staff.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0) + 1;
-  
-    renderServices();
+
+  function addStaffRow(person = createStaff()) {
+    staff.push(person);
     renderStaff();
-  
-    businessStatus.textContent = 'Negocio cargado';
-    businessStatus.className = 'badge badge-ok';
-  }
-  
-  function tryLoadExistingByName(){
-    const name = shopName.value.trim();
-    if (!name){ businessStatus.textContent='Negocio nuevo'; businessStatus.className='badge badge-warn'; return; }
-    const slug = normalizeSlug(name);
-    const list = getBusinesses();
-    const biz = list.find(b => b.slug === slug);
-    if (biz){
-      loadBusinessIntoForm(biz);
-    } else {
-      // Si no existe, ponemos predeterminados (solo si estamos vacíos)
-      if (services.length===0 && staff.length===0){
-        services = [];
-        addServiceRow(createService('Corte', 30, ''));
-        addServiceRow(createService('Barba', 20, ''));
-        addServiceRow(createService('Corte y barba', 40, ''));
-        staff = [];
-        renderServices(); renderStaff();
-      }
-      businessStatus.textContent='Negocio nuevo';
-      businessStatus.className='badge badge-warn';
-    }
     debouncedSave();
   }
-  shopName.addEventListener('blur', tryLoadExistingByName);
-  shopName.addEventListener('input', debounce(tryLoadExistingByName, 400));
-  
-  /* ========= Resumen (mock) ========= */
-  const summaryText=document.getElementById('summaryText');
-  const summarySection=document.getElementById('datos-resumen');
-  const registerSection=document.getElementById('registro-final');
-  
-  function showSummary(data){
-    let lines=[];
+
+  function removeStaff(id) {
+    staff = staff.filter(p => p.id !== id);
+    renderStaff();
+    debouncedSave();
+  }
+
+  /* ========= Validaciones ========= */
+  function clearErrors() {
+    document.querySelectorAll('.error').forEach(el => {
+      el.textContent = '';
+    });
+  }
+
+  function validateForm(data) {
+    clearErrors();
+    let valid = true;
+    let first = null;
+
+    const shopNameEl = document.getElementById('shopName');
+    if (!data.shop.name) {
+      document.getElementById('error-shopName').textContent = 'Requerido';
+      first = first || shopNameEl;
+      valid = false;
+    }
+
+    const addressEl = document.getElementById('shopAddress');
+    if (!data.shop.address) {
+      document.getElementById('error-shopAddress').textContent = 'Requerido';
+      first = first || addressEl;
+      valid = false;
+    }
+
+    const ownerNameEl = document.getElementById('ownerName');
+    if (!data.owner.fullName) {
+      document.getElementById('error-ownerName').textContent = 'Requerido';
+      first = first || ownerNameEl;
+      valid = false;
+    }
+
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const ownerEmailEl = document.getElementById('ownerEmail');
+    if (!emailPattern.test(data.owner.email)) {
+      document.getElementById('error-ownerEmail').textContent = 'Correo inválido';
+      first = first || ownerEmailEl;
+      valid = false;
+    }
+
+    const phoneDigits = data.owner.phone.replace(/\D/g, '');
+    const ownerPhoneEl = document.getElementById('ownerPhone');
+    if (phoneDigits.length !== 10) {
+      document.getElementById('error-ownerPhone').textContent = 'Teléfono inválido';
+      first = first || ownerPhoneEl;
+      valid = false;
+    } else {
+      data.owner.phone = phoneDigits;
+    }
+
+    const ownerPassEl = document.getElementById('ownerPass');
+    if (data.owner.password.length < 6) {
+      document.getElementById('error-ownerPass').textContent = 'Mínimo 6 caracteres';
+      first = first || ownerPassEl;
+      valid = false;
+    }
+
+    if (data.services.length === 0) {
+      document.getElementById('error-services').textContent = 'Agrega al menos un servicio';
+      valid = false;
+    }
+
+    const seen = new Set();
+    data.services.forEach(s => {
+      const row = servicesBody.querySelector(`tr[data-id='${s.id}']`);
+      if (!row) return;
+
+      const nameInput = row.querySelector('.service-name');
+      const nameErr = row.querySelector('.name-error');
+      const priceInput = row.querySelector('.service-price');
+      const priceErr = row.querySelector('.price-error');
+      const durInput = row.querySelector('.service-duration');
+      const durErr = row.querySelector('.dur-error');
+
+      const nameTrim = s.name.trim();
+      if (!nameTrim) {
+        nameErr.textContent = 'Requerido';
+        first = first || nameInput;
+        valid = false;
+      } else {
+        const key = nameTrim.toLowerCase();
+        if (seen.has(key)) {
+          nameErr.textContent = 'Duplicado';
+          first = first || nameInput;
+          valid = false;
+        } else {
+          nameErr.textContent = '';
+        }
+        seen.add(key);
+      }
+
+      if (s.priceCOP === '' || s.priceCOP < 0) {
+        priceErr.textContent = 'Precio inválido';
+        first = first || priceInput;
+        valid = false;
+      } else {
+        priceErr.textContent = '';
+      }
+
+      if (s.durationMins < 20 || s.durationMins > 120 || (s.durationMins % 10) !== 0) {
+        durErr.textContent = 'Duración inválida (20–120, x10)';
+        first = first || durInput;
+        valid = false;
+      } else {
+        durErr.textContent = '';
+      }
+    });
+
+    staff.forEach(st => {
+      const row = staffBody.querySelector(`tr[data-id='${st.id}']`);
+      if (!row) return;
+      const nameInput = row.querySelector('.staff-name');
+      const err = row.querySelector('.error');
+      const hasOffers = Object.values(st.offers || {}).some(Boolean);
+
+      if (st.name.trim() && !hasOffers) {
+        err.textContent = 'Selecciona al menos un servicio';
+        first = first || row.querySelector('.staff-services input');
+        valid = false;
+      }
+      if (!st.name.trim() && hasOffers) {
+        err.textContent = 'Nombre requerido';
+        first = first || nameInput;
+        valid = false;
+      }
+      if (st.name.trim() && hasOffers) {
+        err.textContent = '';
+      }
+    });
+
+    if (first) first.focus();
+    return valid;
+  }
+
+  /* ========= Draft sesión ========= */
+  function getFormData() {
+    return {
+      shop: {
+        name: document.getElementById('shopName').value.trim(),
+        slug: normalizeSlug(document.getElementById('shopName').value.trim()),
+        address: document.getElementById('shopAddress').value.trim(),
+        lat: document.getElementById('shopLat').value,
+        lng: document.getElementById('shopLng').value,
+      },
+      owner: {
+        fullName: document.getElementById('ownerName').value.trim(),
+        email: document.getElementById('ownerEmail').value.trim(),
+        phone: document.getElementById('ownerPhone').value.trim(),
+        password: document.getElementById('ownerPass').value,
+      },
+      services: services.map(s => ({
+        id: s.id,
+        name: s.name.trim(),
+        durationMins: s.durationMins,
+        priceCOP: s.priceCOP === '' ? '' : Number(s.priceCOP),
+        order: s.order,
+      })),
+      staff: staff.map(p => ({
+        id: p.id,
+        name: p.name.trim(),
+        offers: { ...(p.offers || {}) },
+      })),
+    };
+  }
+
+  const saveDraft = () => {
+    try {
+      sessionStorage.setItem(SS_DRAFT, JSON.stringify(getFormData()));
+    } catch (e) {
+      console.warn('No se pudo guardar borrador en sesión:', e);
+    }
+  };
+  const debouncedSave = debounce(saveDraft, 300);
+
+  function cargarDraftDesdeSession() {
+    const raw = sessionStorage.getItem(SS_DRAFT);
+    if (!raw) return false;
+    try {
+      const data = JSON.parse(raw);
+
+      shopName.value = data.shop?.name || '';
+      shopAddress.value = data.shop?.address || '';
+      shopLat.value = data.shop?.lat || '';
+      shopLng.value = data.shop?.lng || '';
+      updateAddressPreview();
+
+      ownerName.value = data.owner?.fullName || ownerName.value;
+      ownerEmail.value = data.owner?.email || ownerEmail.value;
+      ownerPhone.value = data.owner?.phone || ownerPhone.value;
+      ownerPass.value = data.owner?.password || '';
+
+      services = (data.services || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        durationMins: s.durationMins,
+        priceCOP: s.priceCOP,
+        order: s.order,
+      }));
+      serviceIdCounter =
+        services.reduce((m, s) => {
+          const num = parseInt((s.id || '').split('-')[1]) || 0;
+          return Math.max(m, num);
+        }, 0) + 1;
+
+      staff = (data.staff || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        offers: { ...(p.offers || {}) },
+      }));
+      staffIdCounter =
+        staff.reduce((m, s) => {
+          const num = parseInt((s.id || '').split('-')[1]) || 0;
+          return Math.max(m, num);
+        }, 0) + 1;
+
+      renderServices();
+      renderStaff();
+
+      businessStatus.textContent = 'Borrador cargado';
+      businessStatus.className = 'badge badge-warn';
+
+      return true;
+    } catch (e) {
+      console.warn('No se pudo parsear borrador:', e);
+      return false;
+    }
+  }
+
+  /* ========= Carga de negocio existente desde Supabase ========= */
+  async function cargarNegocioDesdeSupabase() {
+    try {
+      // Buscar si el usuario es propietario de algún negocio
+      const { data: ownerRow, error: ownerError } = await supabase
+        .from('personal')
+        .select('id, negocio_id')
+        .eq('usuario_id', sesion.usuario_id)
+        .eq('propietario', true)
+        .maybeSingle();
+
+      if (ownerError) {
+        console.warn('Error al leer personal propietario:', ownerError.message);
+        return;
+      }
+      if (!ownerRow) {
+        return;
+      }
+
+      currentNegocioId = ownerRow.negocio_id;
+      ownerPersonalId = ownerRow.id;
+
+      // Leer datos del negocio
+      const { data: negocio, error: negocioError } = await supabase
+        .from('negocios')
+        .select('id, nombre, direccion, latitud, longitud')
+        .eq('id', currentNegocioId)
+        .maybeSingle();
+
+      if (negocioError) {
+        console.warn('Error al leer negocio:', negocioError.message);
+        return;
+      }
+      if (!negocio) return;
+
+      shopName.value = negocio.nombre || '';
+      shopAddress.value = negocio.direccion || '';
+      shopLat.value = negocio.latitud != null ? String(negocio.latitud) : '';
+      shopLng.value = negocio.longitud != null ? String(negocio.longitud) : '';
+      updateAddressPreview();
+
+      // Prefill responsable con datos de sesión
+      ownerName.value = sesion.nombre || ownerName.value;
+      ownerEmail.value = sesion.correo || ownerEmail.value;
+      ownerPhone.value = sesion.telefono || ownerPhone.value;
+
+      // Leer servicios
+      const { data: serviciosDb, error: servError } = await supabase
+        .from('servicios')
+        .select('id, nombre, duracion_min, precio_cop, orden, activo')
+        .eq('negocio_id', currentNegocioId)
+        .order('orden', { ascending: true });
+
+      if (servError) {
+        console.warn('Error al leer servicios:', servError.message);
+      }
+
+      services = (serviciosDb || []).map((srv, idx) => ({
+        id: `srv-${idx}`,
+        name: srv.nombre || '',
+        durationMins: srv.duracion_min,
+        priceCOP: srv.precio_cop == null ? '' : Number(srv.precio_cop),
+        order: srv.orden != null ? srv.orden : idx,
+        _dbId: srv.id,
+      }));
+      serviceIdCounter = services.length;
+
+      // Leer personal (excluyendo propietario)
+      const { data: staffDb, error: staffError } = await supabase
+        .from('personal')
+        .select('id, nombre_publico, propietario, activo')
+        .eq('negocio_id', currentNegocioId)
+        .order('id', { ascending: true });
+
+      if (staffError) {
+        console.warn('Error al leer personal:', staffError.message);
+      }
+
+      const staffNoOwner = (staffDb || []).filter(p => !p.propietario);
+
+      let psDb = [];
+      if (staffNoOwner.length && services.length) {
+        const staffIds = staffNoOwner.map(p => p.id);
+        const { data: psRows, error: psError } = await supabase
+          .from('personal_servicio')
+          .select('personal_id, servicio_id')
+          .in('personal_id', staffIds);
+
+        if (psError) {
+          console.warn('Error al leer personal_servicio:', psError.message);
+        } else {
+          psDb = psRows || [];
+        }
+      }
+
+      const serviceDbIdToLocalId = new Map();
+      services.forEach(s => {
+        if (s._dbId) serviceDbIdToLocalId.set(s._dbId, s.id);
+      });
+
+      staff = staffNoOwner.map((p, idx) => {
+        const offers = {};
+        psDb
+          .filter(r => r.personal_id === p.id)
+          .forEach(r => {
+            const localServiceId = serviceDbIdToLocalId.get(r.servicio_id);
+            if (localServiceId) offers[localServiceId] = true;
+          });
+
+        return {
+          id: `stf-${idx}`,
+          name: p.nombre_publico || '',
+          offers,
+          _dbId: p.id,
+        };
+      });
+      staffIdCounter = staff.length;
+
+      renderServices();
+      renderStaff();
+
+      businessStatus.textContent = 'Negocio cargado';
+      businessStatus.className = 'badge badge-ok';
+    } catch (e) {
+      console.error('Error cargando negocio desde Supabase:', e);
+    }
+  }
+
+  /* ========= Autocompletar nombres de barberías (solo lectura) ========= */
+  async function refreshBusinessDatalist() {
+    const dl = document.getElementById('businessList');
+    dl.innerHTML = '';
+    try {
+      const { data, error } = await supabase.rpc('get_public_negocios');
+      if (error) {
+        console.warn('Error al obtener negocios públicos:', error.message);
+        return;
+      }
+      (data || []).forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.nombre;
+        dl.appendChild(opt);
+      });
+    } catch (e) {
+      console.warn('Error al cargar datalist de negocios:', e);
+    }
+  }
+
+  /* ========= Resumen ========= */
+  function showSummary(data) {
+    let lines = [];
     lines.push(`Negocio: ${data.shop.name}`);
     lines.push(`Dirección: ${data.shop.address}`);
-    if(data.shop.lat && data.shop.lng){ lines.push(`Lat/Lng: ${data.shop.lat}, ${data.shop.lng}`); }
+    if (data.shop.lat && data.shop.lng) {
+      lines.push(`Lat/Lng: ${data.shop.lat}, ${data.shop.lng}`);
+    }
     lines.push(`Responsable: ${data.owner.fullName}`);
     lines.push(`Correo: ${data.owner.email}`);
     lines.push(`Teléfono: ${data.owner.phone}`);
     lines.push('Servicios:');
-    data.services.sort((a,b)=>a.order-b.order).forEach(s=>{
-      lines.push(` - ${s.name} (${s.durationMins} min) $${fmtCOP(s.priceCOP)} COP (${approxTokens(s.durationMins)})`);
-    });
-    if(data.staff.length){
+    data.services
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .forEach(s => {
+        lines.push(
+          ` - ${s.name} (${s.durationMins} min) $${fmtCOP(s.priceCOP)} COP (${approxTokens(
+            s.durationMins
+          )})`
+        );
+      });
+    if (data.staff.length) {
       lines.push('Personal:');
-      data.staff.forEach(p=>{
-        if(!p.name.trim()) return;
-        const offerNames=data.services.filter(s=>p.offers[s.id]).map(s=>s.name).join(', ');
+      data.staff.forEach(p => {
+        if (!p.name.trim()) return;
+        const offerNames = data.services
+          .filter(s => p.offers[s.id])
+          .map(s => s.name)
+          .join(', ');
         lines.push(` - ${p.name}: ${offerNames || '—'}`);
       });
     }
-    summaryText.textContent=lines.join('\n');
-    summarySection.style.display='block';
-    registerSection.style.display='block';
+    summaryText.textContent = lines.join('\n');
+    summarySection.style.display = 'block';
+    registerSection.style.display = 'block';
   }
-  
-  /* ========= Eventos ========= */
-  document.getElementById('addService').addEventListener('click', ()=>addServiceRow());
-  document.getElementById('addStaff').addEventListener('click', ()=>addStaffRow());
-  
-  document.getElementById('submitForm').addEventListener('click', ()=>{
-    const data=getFormData();
-    if(validateForm(data)){
-      showSummary(data);
-      sessionStorage.setItem(SS_SUBMITTED, JSON.stringify(data));
-    }
-  });
-  
-  document.getElementById('registerBusiness').addEventListener('click', ()=>{
-    const data=getFormData();
-    if(!validateForm(data)) return;
-  
-    // Estructura a guardar en el directorio de negocios
-    const biz = {
-      slug: data.shop.slug,
-      name: data.shop.name,
-      address: data.shop.address,
-      lat: data.shop.lat,
-      lng: data.shop.lng,
-      owner: { ...data.owner },
-      services: data.services.slice(),
-      staff: data.staff.slice()
-    };
-  
-    const list = upsertBusiness(biz);               // crea/actualiza en directorio
-    localStorage.setItem(LS_KEY, JSON.stringify(list));
-    sessionStorage.setItem(SS_REGISTERED, JSON.stringify(biz)); // último registro
-  
-    refreshBusinessDatalist();
-    businessStatus.textContent='Negocio actualizado';
-    businessStatus.className='badge badge-ok';
-  
-    alert('Datos del negocio guardados/actualizados correctamente.');
-  });
-  
-  /* ========= Carga inicial ========= */
-  document.addEventListener('DOMContentLoaded', ()=>{
-    refreshBusinessDatalist();
-  
-    // Intentar recuperar borrador de sesión
-    const draft=sessionStorage.getItem(SS_DRAFT);
-    if(draft){
-      const data=JSON.parse(draft);
-  
-      // Datos base
-      shopName.value=data.shop.name||'';
-      document.getElementById('shopAddress').value=data.shop.address||'';
-      document.getElementById('shopLat').value=data.shop.lat||'';
-      document.getElementById('shopLng').value=data.shop.lng||'';
-      updateAddressPreview();
-  
-      // Responsable
-      document.getElementById('ownerName').value=data.owner.fullName||'';
-      document.getElementById('ownerEmail').value=data.owner.email||'';
-      document.getElementById('ownerPhone').value=data.owner.phone||'';
-      document.getElementById('ownerPass').value=data.owner.password||'';
-  
-      // Servicios / Personal
-      services=(data.services||[]).map(s=>({ ...s }));
-      serviceIdCounter=services.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0)+1;
-  
-      staff=(data.staff||[]).map(p=>({ ...p, offers:{ ...(p.offers||{}) } }));
-      staffIdCounter=staff.reduce((m,s)=>Math.max(m, parseInt((s.id||'').split('-')[1])||0),0)+1;
-  
-      renderServices();
-      renderStaff();
-  
-      // Si además coincide con un negocio guardado, marca estado
-      if (shopName.value && getBusinesses().some(b => b.slug===normalizeSlug(shopName.value))){
-        businessStatus.textContent='Negocio cargado';
-        businessStatus.className='badge badge-ok';
+
+  /* ========= Registro en Supabase ========= */
+  async function registrarNegocioEnSupabase(data) {
+    try {
+      const ses = sesion;
+      if (!ses) {
+        window.location.href = 'interfaz_inicio_s.html';
+        return;
       }
-    } else {
-      // Predeterminados iniciales
+
+      const latNum = data.shop.lat ? Number(data.shop.lat) : null;
+      const lngNum = data.shop.lng ? Number(data.shop.lng) : null;
+
+      const serviciosPrepared = data.services.map((s, idx) => ({
+        localId: s.id,
+        row: {
+          nombre: s.name,
+          duracion_min: s.durationMins,
+          precio_cop: s.priceCOP === '' ? 0 : s.priceCOP,
+          costo_tokens: computeTokens(s.durationMins),
+          activo: true,
+          orden: s.order != null ? s.order : idx,
+        },
+      }));
+
+      const staffPrepared = data.staff
+        .filter(p => p.name.trim())
+        .map(p => ({
+          localId: p.id,
+          name: p.name.trim(),
+          offers: { ...(p.offers || {}) },
+        }));
+
+      const ownerPublicName = data.owner.fullName || ses.nombre || 'Propietario';
+
+      const isNew = !currentNegocioId;
+
+      // 1. Insertar / actualizar negocio
+      if (isNew) {
+        const { data: negRow, error: negError } = await supabase
+          .from('negocios')
+          .insert({
+            nombre: data.shop.name,
+            direccion: data.shop.address || null,
+            latitud: latNum,
+            longitud: lngNum,
+            activo: false,
+          })
+          .select('id')
+          .single();
+
+        if (negError) throw negError;
+        currentNegocioId = negRow.id;
+      } else {
+        const { error: negUpdError } = await supabase
+          .from('negocios')
+          .update({
+            nombre: data.shop.name,
+            direccion: data.shop.address || null,
+            latitud: latNum,
+            longitud: lngNum,
+          })
+          .eq('id', currentNegocioId);
+
+        if (negUpdError) throw negUpdError;
+      }
+
+      // 2. Asegurar fila de propietario en personal
+      if (!ownerPersonalId) {
+        const { data: ownerRow, error: ownerError } = await supabase
+          .from('personal')
+          .insert({
+            negocio_id: currentNegocioId,
+            usuario_id: ses.usuario_id,
+            propietario: true,
+            nombre_publico: ownerPublicName,
+            activo: true,
+          })
+          .select('id')
+          .single();
+        if (ownerError) throw ownerError;
+        ownerPersonalId = ownerRow.id;
+      } else {
+        const { error: ownerUpdError } = await supabase
+          .from('personal')
+          .update({
+            nombre_publico: ownerPublicName,
+          })
+          .eq('id', ownerPersonalId);
+        if (ownerUpdError) console.warn('No se pudo actualizar nombre público del propietario:', ownerUpdError.message);
+      }
+
+      // 3. Limpiar servicios y personal (no propietario) si es actualización
+      if (!isNew) {
+        const { error: delStaffError } = await supabase
+          .from('personal')
+          .delete()
+          .eq('negocio_id', currentNegocioId)
+          .eq('propietario', false);
+        if (delStaffError) throw delStaffError;
+
+        const { error: delServError } = await supabase
+          .from('servicios')
+          .delete()
+          .eq('negocio_id', currentNegocioId);
+        if (delServError) throw delServError;
+      }
+
+      // 4. Insertar servicios
+      const serviciosInsert = serviciosPrepared.map(s => ({
+        ...s.row,
+        negocio_id: currentNegocioId,
+      }));
+
+      let serviciosRows = [];
+      if (serviciosInsert.length) {
+        const { data: srvRows, error: srvError } = await supabase
+          .from('servicios')
+          .insert(serviciosInsert)
+          .select('id');
+        if (srvError) throw srvError;
+        serviciosRows = srvRows || [];
+      }
+
+      const mapServiceLocalToDbId = new Map();
+      serviciosRows.forEach((srvRow, idx) => {
+        const localId = serviciosPrepared[idx].localId;
+        mapServiceLocalToDbId.set(localId, srvRow.id);
+      });
+
+      // 5. Insertar personal (no propietario)
+      let staffRows = [];
+      if (staffPrepared.length) {
+        const staffInsert = staffPrepared.map(p => ({
+          negocio_id: currentNegocioId,
+          usuario_id: null,
+          propietario: false,
+          nombre_publico: p.name,
+          activo: true,
+        }));
+        const { data: stRows, error: stError } = await supabase
+          .from('personal')
+          .insert(staffInsert)
+          .select('id');
+        if (stError) throw stError;
+        staffRows = stRows || [];
+      }
+
+      // 6. Insertar relaciones personal_servicio
+      const psInsert = [];
+      staffRows.forEach((stRow, idx) => {
+        const prepared = staffPrepared[idx];
+        Object.entries(prepared.offers || {}).forEach(([localSrvId, isOn]) => {
+          if (!isOn) return;
+          const servicioId = mapServiceLocalToDbId.get(localSrvId);
+          if (!servicioId) return;
+          psInsert.push({
+            personal_id: stRow.id,
+            servicio_id: servicioId,
+          });
+        });
+      });
+
+      if (psInsert.length) {
+        const { error: psError } = await supabase
+          .from('personal_servicio')
+          .insert(psInsert);
+        if (psError) throw psError;
+      }
+
+      try {
+        sessionStorage.setItem(SS_REGISTERED, JSON.stringify({ negocio_id: currentNegocioId }));
+      } catch (e) {
+        console.warn('No se pudo guardar estado registrado en sesión:', e);
+      }
+
+      businessStatus.textContent = isNew ? 'Negocio registrado' : 'Negocio actualizado';
+      businessStatus.className = 'badge badge-ok';
+
+      alert('Datos del negocio guardados/actualizados correctamente en la base de datos.');
+    } catch (e) {
+      console.error('Error registrando negocio en Supabase:', e);
+      alert('Hubo un problema al guardar los datos del negocio. Revisa tu conexión o tus permisos e intenta de nuevo.');
+    }
+  }
+
+  /* ========= Inicialización ========= */
+  function inicializarServiciosYPersonalPorDefecto() {
+    if (services.length === 0) {
       addServiceRow(createService('Corte', 30, ''));
       addServiceRow(createService('Barba', 20, ''));
       addServiceRow(createService('Corte y barba', 40, ''));
-      renderStaff(); // empieza vacío
     }
-  
-    // Auto-guardado de sesión
+    if (staff.length === 0) {
+      renderStaff();
+    }
+  }
+
+  (async function init() {
+    // Prefill responsable con datos de sesión
+    if (sesion) {
+      if (!ownerName.value) ownerName.value = sesion.nombre || '';
+      if (!ownerEmail.value) ownerEmail.value = sesion.correo || '';
+      if (!ownerPhone.value) ownerPhone.value = sesion.telefono || '';
+    }
+
+    const draftLoaded = cargarDraftDesdeSession();
+
+    await refreshBusinessDatalist();
+
+    if (!draftLoaded) {
+      await cargarNegocioDesdeSupabase();
+      if (!currentNegocioId) {
+        inicializarServiciosYPersonalPorDefecto();
+      }
+    }
+
+    document.getElementById('addService').addEventListener('click', () => addServiceRow());
+    document.getElementById('addStaff').addEventListener('click', () => addStaffRow());
+
+    document.getElementById('submitForm').addEventListener('click', () => {
+      const data = getFormData();
+      if (validateForm(data)) {
+        showSummary(data);
+        try {
+          sessionStorage.setItem(SS_SUBMITTED, JSON.stringify(data));
+        } catch (e) {
+          console.warn('No se pudo guardar resumen enviado:', e);
+        }
+      }
+    });
+
+    document.getElementById('registerBusiness').addEventListener('click', async () => {
+      const data = getFormData();
+      if (!validateForm(data)) return;
+      showSummary(data);
+      await registrarNegocioEnSupabase(data);
+    });
+
     document.querySelector('.container').addEventListener('input', debouncedSave);
-  });
-  </script>
+  })();
+</script>
   
 </body>
 </html>

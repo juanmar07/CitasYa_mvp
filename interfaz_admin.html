@@ -181,150 +181,299 @@
     Citas Ya S.A.S - Nit 810.000.000-0
   </div>
 
-<script>
-/* ===== Claves de almacenamiento ===== */
-const LS_BIZ='cy_businesses';
-const LS_COM='cy_comments';
-const LS_BOOK='cy_bookings';       // respaldo si faltan appointments
-const LS_APPT='cy_appointments';   // fuente principal
+<script type="module">
+  import { supabase } from './supabaseClient.js';
+  import { cargarSesionLocal, redirigirSegunRol } from './dataCitasYa.js';
 
-/* ===== Util ===== */
-const byId=id=>document.getElementById(id);
-const safeJSON=(k,def=[])=>{try{return JSON.parse(localStorage.getItem(k))||def}catch(_){return def}};
-const sum=a=>a.reduce((s,n)=>s+n,0);
-const fmtPct=n=>(isNaN(n)?0:n).toFixed(0)+'%';
+  const byId  = id => document.getElementById(id);
+  const sum   = arr => arr.reduce((a,b)=>a+b,0);
+  const fmtPct = n => (isNaN(n)?0:n).toFixed(0) + '%';
+  const ESTADO_CANCELADA_ID = 4; // 'cancelada' en tabla estado_cita
 
-/* Fecha de una cita sin importar el formato almacenado */
-function apptISODate(a){
-  // preferencia: a.date (yyyy-mm-dd)
-  if(a && a.date){ return a.date.slice(0,10); }
-  // start / datetime / dateTime (ISO)
-  if(a && a.start){ return String(a.start).slice(0,10); }
-  if(a && a.datetime){ return String(a.datetime).slice(0,10); }
-  if(a && a.dateTime){ return String(a.dateTime).slice(0,10); }
-  return null;
-}
-/* Estado normalizado: scheduled/booked = programada; cancelled/canceled = cancelada */
-function apptStatus(a){
-  const s=(a?.status||'').toLowerCase();
-  if(s==='cancelled' || s==='canceled') return 'cancelled';
-  if(s==='booked' || s==='scheduled')   return 'scheduled';
-  return s||'scheduled';
-}
+  const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
-/* ===== KPIs ===== */
-function renderKPIs(){
-  const businesses=safeJSON(LS_BIZ,[]);
-  byId('kpiBiz').textContent=businesses.length;
-  byId('kpiStaff').textContent=businesses.reduce((acc,b)=>(acc+(b.staff||[]).length),0);
+  let COMENTARIOS_ALL = [];
+  let NEGOCIOS_MAP    = {};
 
-  // Fuente principal
-  let appts=safeJSON(LS_APPT,[]);
-  // Respaldo: convertir bookings -> appointments scheduled
-  if(!appts.length){
-    const books=safeJSON(LS_BOOK,[]);
-    appts=books.map(b=>({date:(b.date||''), start:b.start, status:'scheduled'}));
+  /* ====== KPIs ====== */
+  async function renderKPIs(){
+    try{
+      // 1) Barberías activas
+      const [{ data: negocios, error: eBiz }, { data: personal, error: ePer }] = await Promise.all([
+        supabase.from('negocios').select('id').eq('activo', true),
+        supabase.from('personal').select('id').eq('activo', true)
+      ]);
+
+      if (eBiz)  console.error('Error negocios activos:', eBiz);
+      if (ePer)  console.error('Error personal activo:', ePer);
+
+      const bizCount   = negocios ? negocios.length : 0;
+      const staffCount = personal ? personal.length : 0;
+
+      byId('kpiBiz').textContent   = bizCount;
+      byId('kpiStaff').textContent = staffCount;
+
+      // 2) Citas últimos 7 días
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const from = new Date(today);
+      from.setDate(today.getDate() - 6);
+
+      const fromStr = from.toISOString().slice(0,10);
+      const toStr   = today.toISOString().slice(0,10);
+
+      const { data: citas, error: eCitas } = await supabase
+        .from('citas')
+        .select('fecha, estado_id')
+        .gte('fecha', fromStr)
+        .lte('fecha', toStr);
+
+      if (eCitas){
+        console.error('Error cargando citas para KPIs:', eCitas);
+        byId('kpiAvg').textContent    = '0.0';
+        byId('kpiCancel').textContent = '0%';
+        return;
+      }
+
+      const mapDia = {};
+      (citas || []).forEach(c => {
+        const f = c.fecha;
+        if (!f) return;
+        if (!mapDia[f]) mapDia[f] = { total:0, noCancel:0, cancel:0 };
+        mapDia[f].total++;
+        if (c.estado_id === ESTADO_CANCELADA_ID) mapDia[f].cancel++;
+        else mapDia[f].noCancel++;
+      });
+
+      const counts7 = [];
+      let totalCancel = 0;
+      let totalAll    = 0;
+
+      for (let i = 6; i >= 0; i--){
+        const d  = new Date(today);
+        d.setDate(today.getDate() - i);
+        const iso = d.toISOString().slice(0,10);
+        const obj = mapDia[iso] || { total:0, noCancel:0, cancel:0 };
+        counts7.push(obj.noCancel + obj.cancel);
+        totalCancel += obj.cancel;
+        totalAll    += obj.total;
+      }
+
+      const avg7 = counts7.length ? (sum(counts7) / counts7.length) : 0;
+      byId('kpiAvg').textContent = avg7.toFixed(1);
+
+      const cancelRate = totalAll ? (totalCancel * 100 / totalAll) : 0;
+      byId('kpiCancel').textContent = fmtPct(cancelRate);
+    }catch(err){
+      console.error('Error general en renderKPIs:', err);
+      byId('kpiBiz').textContent    = '0';
+      byId('kpiStaff').textContent  = '0';
+      byId('kpiAvg').textContent    = '0.0';
+      byId('kpiCancel').textContent = '0%';
+    }
   }
 
-  // Normalizar y filtrar las que tienen fecha válida
-  const norm=appts.map(a=>({date:apptISODate(a), status:apptStatus(a)}))
-                  .filter(a=>!!a.date);
+  /* ====== Comentarios: resumen (barras + pie) ====== */
+  function actualizarResumenComentarios(){
+    const total = COMENTARIOS_ALL.length;
+    const avg   = total ? sum(COMENTARIOS_ALL.map(c => c.calificacion || 0)) / total : 0;
+    byId('avgScore').textContent = avg.toFixed(1);
 
-  // Promedio últimos 7 días
-  const today=new Date(); today.setHours(0,0,0,0);
-  const last7=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date(today); d.setDate(today.getDate()-i);
-    const iso=d.toISOString().slice(0,10);
-    const c=norm.filter(a=>a.status==='scheduled' && a.date===iso).length;
-    last7.push(c);
+    const counts = {1:0,2:0,3:0,4:0,5:0};
+    COMENTARIOS_ALL.forEach(c => {
+      const r = c.calificacion || 0;
+      if (counts[r] !== undefined) counts[r] += 1;
+    });
+
+    [5,4,3,2,1].forEach(n => {
+      const pct = total ? (counts[n] * 100 / total) : 0;
+      byId('b'+n).style.width   = pct + '%';
+      byId('p'+n).textContent   = fmtPct(pct);
+    });
+
+    const yes = COMENTARIOS_ALL.filter(c => c.recomienda === true).length;
+    const yesPct = total ? (yes * 100 / total) : 0;
+    const noPct  = 100 - yesPct;
+    byId('yesPct').textContent = fmtPct(yesPct);
+    byId('noPct').textContent  = fmtPct(noPct);
+
+    drawPie(yesPct);
   }
-  byId('kpiAvg').textContent=(sum(last7)/7).toFixed(1);
 
-  // Tasa de cancelación
-  const total=norm.length;
-  const cancelled=norm.filter(a=>a.status==='cancelled').length;
-  byId('kpiCancel').textContent= total? fmtPct((cancelled/total)*100) : '0%';
-}
+  function drawPie(yesPct){
+    const c   = byId('pie');
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    const cx  = c.width/2, cy=c.height/2, r=90;
+    const start = -Math.PI/2;
+    const angle = (yesPct/100)*Math.PI*2;
 
-/* ===== Comentarios ===== */
-function distBars(total,counts){
-  [5,4,3,2,1].forEach(n=>{
-    const pct=total?(counts[n]||0)*100/total:0;
-    byId('b'+n).style.width=pct+'%';
-    byId('p'+n).textContent=fmtPct(pct);
-  });
-}
-function drawPie(yesPct){
-  const c=byId('pie'),ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
-  const cx=c.width/2,cy=c.height/2,r=90,s=-Math.PI/2,a=(yesPct/100)*Math.PI*2;
-  ctx.beginPath();ctx.moveTo(cx,cy);ctx.fillStyle='#66bb6a';ctx.arc(cx,cy,r,s,s+a);ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx,cy);ctx.fillStyle='#ef5350';ctx.arc(cx,cy,r,s+a,s+Math.PI*2);ctx.fill();
-}
-function renderComments(){
-  const all=safeJSON(LS_COM,[]);
-  const total=all.length, avg= total? sum(all.map(c=>c.rating||0))/total : 0;
-  byId('avgScore').textContent=avg.toFixed(1);
+    // Verde (Sí)
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.fillStyle='#66bb6a';
+    ctx.arc(cx,cy,r,start,start+angle);
+    ctx.fill();
 
-  const counts={1:0,2:0,3:0,4:0,5:0}; all.forEach(c=>{counts[c.rating||0]=(counts[c.rating||0]||0)+1});
-  distBars(total,counts);
-
-  const yes=all.filter(c=>c.recommend===true).length;
-  const yesPct= total? (yes*100/total):0; const noPct=100-yesPct;
-  byId('yesPct').textContent=fmtPct(yesPct); byId('noPct').textContent=fmtPct(noPct);
-  drawPie(yesPct);
-
-  const radios=document.querySelectorAll('input[name="f"]');
-  radios.forEach(r=> r.onchange=()=> list(all));
-  byId('destino').onchange=()=> list(all);
-  list(all);
-}
-function list(all){
-  const type=document.querySelector('input[name="f"]:checked').value; // all|positivo|neutro|negativo
-  const dest=byId('destino').value;                                   // all|site|barberia
-  let arr=all.slice();
-  if(type!=='all') arr=arr.filter(c=>c.sentiment===type);
-  if(dest!=='all'){
-    if(dest==='site') arr=arr.filter(c=>c.target?.type==='pagina');
-    if(dest==='barberia') arr=arr.filter(c=>c.target?.type==='barberia');
+    // Rojo (No)
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.fillStyle='#ef5350';
+    ctx.arc(cx,cy,r,start+angle,start+Math.PI*2);
+    ctx.fill();
   }
-  const wrap=byId('cmtList'); wrap.innerHTML='';
-  if(!arr.length){ wrap.innerHTML='<div class="muted">No hay comentarios para este filtro.</div>'; return; }
 
-  arr.forEach(c=>{
-    const row=document.createElement('div'); row.className='cmt';
-    const left=document.createElement('div'); const right=document.createElement('div');
+  /* ====== Comentarios: listado con filtros ====== */
+  function aplicarFiltrosYListar(){
+    const type = document.querySelector('input[name="f"]:checked')?.value || 'all'; // all|positivo|neutro|negativo
+    const dest = byId('destino').value;                                           // all|site|barberia
 
-    const who=(c.author && c.author.trim())? c.author.trim() : 'Anonymous';
-    const destTxt=c.target?.type==='barberia' ? (' · Barbería: '+(c.target?.name||'')) : ' · Página';
-    const when=new Date(c.createdAt||Date.now()).toLocaleString();
+    let arr = COMENTARIOS_ALL.slice();
 
-    const line1=document.createElement('div');
-    line1.innerHTML=`<strong>${who}</strong><span class="muted"> · ${when}${destTxt}</span>`;
-
-    const line2=document.createElement('div');
-    const stars='★'.repeat(Math.max(0,c.rating||0));
-    const tagCls=c.sentiment==='positivo'?'pos':(c.sentiment==='negativo'?'neg':'neu');
-    line2.innerHTML=`<span class="stars">${stars}</span> <span class="tag ${tagCls}">${c.sentiment}</span>`;
-
-    left.appendChild(line1); left.appendChild(line2);
-
-    if((c.text||'').trim()){
-      const btn=document.createElement('button'); btn.className='btn'; btn.textContent='Ver comentario';
-      const p=document.createElement('div'); p.className='muted'; p.style.display='none'; p.style.marginTop='8px'; p.textContent=c.text.trim();
-      btn.onclick=()=>{ p.style.display = p.style.display==='none' ? 'block':'none'; };
-      right.appendChild(btn); left.appendChild(p);
+    if (type !== 'all'){
+      arr = arr.filter(c => c.sentimiento === type);
     }
 
-    row.appendChild(left); row.appendChild(right); wrap.appendChild(row);
-  });
-}
+    if (dest !== 'all'){
+      if (dest === 'site'){
+        arr = arr.filter(c => !c.negocio_id);
+      } else if (dest === 'barberia'){
+        arr = arr.filter(c => !!c.negocio_id);
+      }
+    }
 
-/* ===== Init ===== */
-document.addEventListener('DOMContentLoaded', ()=>{
-  renderKPIs();
-  renderComments();
-});
+    renderListaComentarios(arr);
+  }
+
+  function renderListaComentarios(arr){
+    const wrap = byId('cmtList');
+    wrap.innerHTML = '';
+
+    if (!arr.length){
+      wrap.innerHTML = '<div class="muted">No hay comentarios para este filtro.</div>';
+      return;
+    }
+
+    arr.forEach(c => {
+      const row  = document.createElement('div');
+      row.className = 'cmt';
+
+      const left  = document.createElement('div');
+      const right = document.createElement('div');
+
+      const who  = (c.nombre_autor && c.nombre_autor.trim()) ? c.nombre_autor.trim() : 'Anónimo';
+      const when = c.creado_en ? new Date(c.creado_en).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' }) : '';
+      const negocioNombre = c.negocio_id ? (NEGOCIOS_MAP[c.negocio_id] || '') : '';
+      const destTxt = c.negocio_id ? (' · Barbería: ' + negocioNombre) : ' · Página';
+
+      const line1 = document.createElement('div');
+      line1.innerHTML = `<strong>${who}</strong><span class="muted"> · ${when}${destTxt}</span>`;
+
+      const line2 = document.createElement('div');
+      const rating = c.calificacion || 0;
+      const stars  = '★'.repeat(rating);
+      const sent   = c.sentimiento || 'neutro';
+      const tagCls = sent === 'positivo' ? 'pos' : (sent === 'negativo' ? 'neg' : 'neu');
+      line2.innerHTML = `<span class="stars">${stars}</span> <span class="tag ${tagCls}">${sent}</span>`;
+
+      left.appendChild(line1);
+      left.appendChild(line2);
+
+      const texto = (c.texto || '').trim();
+      if (texto){
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = 'Ver comentario';
+
+        const p = document.createElement('div');
+        p.className = 'muted';
+        p.style.display = 'none';
+        p.style.marginTop = '8px';
+        p.textContent = texto;
+
+        btn.onclick = () => {
+          p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+        };
+
+        right.appendChild(btn);
+        left.appendChild(p);
+      }
+
+      row.appendChild(left);
+      row.appendChild(right);
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ====== Cargar comentarios desde Supabase ====== */
+  async function cargarComentarios(){
+    try{
+      const { data: comentarios, error } = await supabase
+        .from('comentarios')
+        .select('id, negocio_id, nombre_autor, calificacion, recomienda, texto, sentimiento, visible, creado_en')
+        .eq('visible', true);
+
+      if (error){
+        console.error('Error cargando comentarios:', error);
+        COMENTARIOS_ALL = [];
+        NEGOCIOS_MAP    = {};
+        actualizarResumenComentarios();
+        aplicarFiltrosYListar();
+        return;
+      }
+
+      COMENTARIOS_ALL = comentarios || [];
+
+      const negocioIds = [...new Set(COMENTARIOS_ALL.map(c => c.negocio_id).filter(id => !!id))];
+
+      NEGOCIOS_MAP = {};
+      if (negocioIds.length){
+        const { data: negocios, error: eNeg } = await supabase
+          .from('negocios')
+          .select('id, nombre')
+          .in('id', negocioIds);
+
+        if (!eNeg && negocios){
+          negocios.forEach(n => { NEGOCIOS_MAP[n.id] = n.nombre; });
+        }
+      }
+
+      actualizarResumenComentarios();
+
+      // Listeners de filtros
+      document.querySelectorAll('input[name="f"]').forEach(radio => {
+        radio.addEventListener('change', aplicarFiltrosYListar);
+      });
+      byId('destino').addEventListener('change', aplicarFiltrosYListar);
+
+      aplicarFiltrosYListar();
+    }catch(err){
+      console.error('Error general en cargarComentarios:', err);
+      COMENTARIOS_ALL = [];
+      NEGOCIOS_MAP    = {};
+      actualizarResumenComentarios();
+      aplicarFiltrosYListar();
+    }
+  }
+
+  /* ====== Init: validar sesión admin y cargar datos ====== */
+  document.addEventListener('DOMContentLoaded', async () => {
+    const ses = cargarSesionLocal();
+    if (!ses || !ses.auth_user_id || !ses.usuario_id){
+      alert('Debes iniciar sesión como administrador para ver este panel.');
+      window.location.href = 'interfaz_login.html';
+      return;
+    }
+
+    if (Number(ses.rol_id) !== 3){
+      alert('Acceso restringido: solo administradores pueden ver este panel.');
+      redirigirSegunRol(ses.rol_id);
+      return;
+    }
+
+    await renderKPIs();
+    await cargarComentarios();
+  });
 </script>
 </body>
 </html>

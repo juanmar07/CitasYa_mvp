@@ -94,7 +94,7 @@
       <div class="banner-inner">
         <a href="#" class="back-button banner-back" onclick="history.back(); return false;">&larr; Volver</a>
         <div class="banner-title">Programación de Citas</div>
-        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
+        <a href="interfaz_agendar_publico.html" class="banner-logo" aria-label="Ir al inicio">
           <img src="LogoCitasYa.png" alt="Citas Ya">
         </a>
       </div>
@@ -177,334 +177,589 @@
     </section>
   </div>
 
-  <!-- Modal Buscar por mapa -->
-  <div id="modalMap" style="position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:10000;">
-    <div style="background:#fff; width:min(900px,95%); border-radius:10px; padding:16px; box-shadow:0 8px 24px rgba(0,0,0,.2);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h3 style="margin:0;">Buscar establecimiento</h3>
-        <button id="closeMap" class="btn btn-red" style="width:auto; margin:0;">Cerrar</button>
-      </div>
-      <p class="muted" style="margin-top:-6px;">Selecciona tu barbería de la lista o abre su ubicación en el mapa.</p>
-      <div id="bizList" style="display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center;"></div>
-      <p class="muted" style="margin-top:8px;">* “Ver en mapa” abre Google Maps con la ubicación registrada (si tiene lat/lng).</p>
-    </div>
-  </div>
-
   <!-- Legal -->
   <div class="legal-outside">
     Todos los derechos reservados © 2025<br>
     Citas Ya S.A.S - Nit 810.000.000-0
   </div>
 
-<script>
-/* ===== Storage y utilidades ===== */
-const LS_BIZ = 'cy_businesses';
-const LS_SCH = 'cy_schedules';
-const LS_BOOKINGS = 'cy_bookings';
-const LS_APPT = 'cy_appointments';     // métricas de citas (scheduled/cancelled)
+<script type="module">
+  import { supabase } from './supabaseClient.js';
+  import { cargarSesionLocal } from './dataCitasYa.js';
 
-const $ = s => document.querySelector(s);
-const plain = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  /* ==================== Helpers ==================== */
+  const SS_RETURN = 'cy_return_to';
 
-const getBusinesses = ()=>{ try{return JSON.parse(localStorage.getItem(LS_BIZ))||[]}catch(_){return[]} };
-const getSchedules  = ()=>{ try{return JSON.parse(localStorage.getItem(LS_SCH))||[]}catch(_){return[]} };
-const getBookings   = ()=>{ try{return JSON.parse(localStorage.getItem(LS_BOOKINGS))||[]}catch(_){return[]} };
-const saveBookings  = arr => localStorage.setItem(LS_BOOKINGS, JSON.stringify(arr));
-const getAppts      = ()=>{ try{return JSON.parse(localStorage.getItem(LS_APPT))||[]}catch(_){return[]} };
-const saveAppts     = arr => localStorage.setItem(LS_APPT, JSON.stringify(arr));
+  const $ = (s) => document.querySelector(s);
+  const normalize = (s) =>
+    (s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
 
-const addMinutes = (hhmm, mins) => {
-  const [h,m]=hhmm.split(':').map(n=>parseInt(n,10));
-  const d=new Date(2000,0,1,h,m,0); d.setMinutes(d.getMinutes()+mins);
-  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-};
-const toMin = t => {const [h,m]=t.split(':').map(Number); return h*60+m};
-const overlap = (aS,aE,bS,bE)=> toMin(aS)<toMin(bE) && toMin(bS)<toMin(aE);
+  const addMinutes = (hhmm, mins) => {
+    const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10));
+    const d = new Date(2000, 0, 1, h, m, 0);
+    d.setMinutes(d.getMinutes() + mins);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
 
-/* ===== Controles ===== */
-const attendee = $('#attendee');
+  const toMin = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
 
-const bizInput = $('#biz');
-const bizList  = $('#businessList');
-const dontKnow = $('#dontKnow');
-const btnMap   = $('#btnMap');
-const modalMap = $('#modalMap');
-const closeMap = $('#closeMap');
-const bizListModal = $('#bizList');
+  const overlap = (aS, aE, bS, bE) =>
+    toMin(aS) < toMin(bE) && toMin(bS) < toMin(aE);
 
-const service = $('#service'); const svcDur = $('#svcDur');
-const staff   = $('#staff');
-const dateEl  = $('#date');
-const timeSel = $('#timeSel'); const timeHelp = $('#timeHelp');
+  function windowsFromDay(d) {
+    if (!d || !d.work || !d.start || !d.end || d.start >= d.end) return [];
+    const base = [[d.start, d.end]];
+    if (d.lunchStart && d.lunchEnd && d.lunchStart < d.lunchEnd) {
+      const out = [];
+      base.forEach(([a, b]) => {
+        if (d.lunchStart > a) out.push([a, Math.min(b, d.lunchStart)]);
+        if (d.lunchEnd < b) out.push([Math.max(a, d.lunchEnd), b]);
+      });
+      return out.filter(([a, b]) => a < b);
+    }
+    return base;
+  }
 
-const btnSchedule = $('#btnSchedule');
-const btnClear    = $('#btnClear');
-const btnComment  = $('#btnComment');
-const btnCancel   = $('#btnCancel');
-const summary     = $('#summary');
+  function slotsFromWindows(wins, dur) {
+    const s = [];
+    for (const [a, b] of wins) {
+      let t = a;
+      while (toMin(t) + dur <= toMin(b)) {
+        s.push(t);
+        t = addMinutes(t, 10); // pasos de 10 min
+      }
+    }
+    return s;
+  }
 
-/* ===== Estado de selección ===== */
-let currentBiz=null;       // objeto negocio
-let currentService=null;   // objeto servicio
-let currentStaff='';       // nombre barbero
+  // getDay() -> id de dias_semana (1=lunes,...,7=domingo)
+  const JS_TO_DB_DIA = [7, 1, 2, 3, 4, 5, 6];
 
-/* ===== Datalist + modal mapa ===== */
-function refreshDatalist(){
-  bizList.innerHTML='';
-  getBusinesses().forEach(b=>{
-    const opt=document.createElement('option'); opt.value=b.name; bizList.appendChild(opt);
-  });
-}
-refreshDatalist();
+  /* ==================== DOM ==================== */
+  const attendee    = $('#attendee');
 
-function openMap(){
-  const arr=getBusinesses();
-  bizListModal.innerHTML='';
-  if(!arr.length){ bizListModal.textContent='No hay establecimientos registrados.'; }
-  else{
-    arr.forEach(b=>{
-      const nameDiv=document.createElement('div');
-      nameDiv.innerHTML=`<strong>${b.name||'Sin nombre'}</strong><br><span class="muted">${b.address||''}</span>`;
+  const bizInput    = $('#biz');
+  const bizList     = $('#businessList');
+  const dontKnow    = $('#dontKnow');
+  const btnMap      = $('#btnMap');
+  const modalMap    = $('#modalMap');
+  const closeMap    = $('#closeMap');
+  const bizListModal= $('#bizList');
 
-      const selBtn=document.createElement('button');
-      selBtn.className='btn btn-blue'; selBtn.style.width='auto'; selBtn.style.margin='0';
-      selBtn.textContent='Seleccionar';
-      selBtn.addEventListener('click',()=>{
-        bizInput.value=b.name||''; modalMap.style.display='none'; loadBusinessFromInput();
+  const service     = $('#service');
+  const svcDur      = $('#svcDur');
+  const staff       = $('#staff');
+  const dateEl      = $('#date');
+  const timeSel     = $('#timeSel');
+  const timeHelp    = $('#timeHelp');
+
+  const btnSchedule = $('#btnSchedule');
+  const btnClear    = $('#btnClear');
+  const btnComment  = $('#btnComment');
+  const btnCancel   = $('#btnCancel');
+  const summary     = $('#summary');
+
+  /* ==================== Estado ==================== */
+  let negocios = [];
+  let negocioSeleccionado = null;
+  let serviciosNegocioActual = [];
+  let personalNegocioActual  = [];
+  let estadoCitaPendienteId  = null;
+
+  /* ==================== Sesión ==================== */
+  function getSesion() {
+    try {
+      return cargarSesionLocal();
+    } catch {
+      return null;
+    }
+  }
+
+  function requireSesion() {
+    const ses = getSesion();
+    if (!ses || !ses.usuario_id) {
+      sessionStorage.setItem(SS_RETURN, 'interfaz_agendar.html');
+      window.location.href = 'interfaz_login.html';
+      return null;
+    }
+    return ses;
+  }
+
+  /* ==================== Carga de datos Supabase ==================== */
+
+  async function cargarEstadoPendiente() {
+    if (estadoCitaPendienteId) return;
+    const { data, error } = await supabase
+      .from('estado_cita')
+      .select('id')
+      .eq('nombre', 'pendiente')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('No se pudo cargar estado "pendiente":', error.message);
+      return;
+    }
+    if (data) estadoCitaPendienteId = data.id;
+  }
+
+  async function loadNegocios() {
+    bizList.innerHTML = '';
+    negocios = [];
+
+    const { data, error } = await supabase.rpc('get_public_negocios');
+    if (error) {
+      console.error('Error cargando negocios:', error.message);
+      return;
+    }
+
+    negocios = (data || []).slice().sort((a, b) =>
+      (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' })
+    );
+
+    negocios.forEach((n) => {
+      const op = document.createElement('option');
+      op.value = n.nombre || '';
+      bizList.appendChild(op);
+    });
+  }
+
+  function findNegocioByNombre(nombre) {
+    const target = normalize(nombre);
+    if (!target) return null;
+    return negocios.find((n) => normalize(n.nombre) === target) || null;
+  }
+
+  function setDurationHintFromService() {
+    const dur = service.options[service.selectedIndex]?.dataset.duration || '';
+    svcDur.textContent = dur ? `Duración: ${dur} min` : 'Duración: —';
+  }
+
+  async function populateServiceAndStaff(name, preSvcId = '', preStaffId = '') {
+    service.innerHTML = '<option value="">— Seleccione —</option>';
+    staff.innerHTML   = '<option value="">— Seleccione —</option>';
+    svcDur.textContent = 'Duración: —';
+    negocioSeleccionado = null;
+    serviciosNegocioActual = [];
+    personalNegocioActual  = [];
+
+    const match = findNegocioByNombre(name);
+    if (!match) {
+      timeSel.disabled = true;
+      timeSel.innerHTML = '<option value="">— Selecciona fecha, servicio y barbero —</option>';
+      timeHelp.textContent = '';
+      return;
+    }
+    negocioSeleccionado = match;
+
+    const [{ data: servData, error: errServ }, { data: persData, error: errPers }] =
+      await Promise.all([
+        supabase
+          .from('servicios')
+          .select('id, nombre, duracion_min')
+          .eq('negocio_id', match.id)
+          .eq('activo', true)
+          .order('orden', { ascending: true }),
+        supabase
+          .from('personal')
+          .select('id, nombre_publico')
+          .eq('negocio_id', match.id)
+          .eq('activo', true),
+      ]);
+
+    if (errServ) console.error('Error cargando servicios:', errServ.message);
+    if (errPers) console.error('Error cargando personal:', errPers.message);
+
+    serviciosNegocioActual = servData || [];
+    personalNegocioActual  = persData || [];
+
+    serviciosNegocioActual.forEach((s) => {
+      const op = document.createElement('option');
+      op.value = String(s.id);
+      op.textContent = `${s.nombre} (${s.duracion_min} min)`;
+      op.dataset.duration = s.duracion_min;
+      service.appendChild(op);
+    });
+
+    personalNegocioActual.forEach((p) => {
+      const op = document.createElement('option');
+      op.value = String(p.id);
+      op.textContent = p.nombre_publico;
+      staff.appendChild(op);
+    });
+
+    if (preSvcId) service.value = String(preSvcId);
+    if (preStaffId) staff.value = String(preStaffId);
+
+    setDurationHintFromService();
+    await buildTimeOptions();
+    updateSummary();
+  }
+
+  async function buildTimeOptions() {
+    timeSel.innerHTML = '<option value="">— Selecciona fecha, servicio y barbero —</option>';
+    timeSel.disabled = true;
+    timeHelp.textContent = '';
+
+    const negocio = negocioSeleccionado;
+    const servicioId = service.value;
+    const personalId = staff.value;
+    const fechaISO   = dateEl.value;
+
+    if (!negocio || !servicioId || !personalId || !fechaISO) return;
+
+    const dur = Number(service.options[service.selectedIndex]?.dataset.duration || 0);
+    if (!dur) {
+      timeHelp.textContent = 'No se encontró duración del servicio.';
+      return;
+    }
+
+    // 1. Bloque de horario que cubre la fecha
+    const { data: bloques, error: errBloques } = await supabase
+      .from('conjunto_horario')
+      .select('id, fecha_inicio, fecha_fin, creado_en')
+      .eq('negocio_id', negocio.id)
+      .eq('personal_id', personalId)
+      .lte('fecha_inicio', fechaISO)
+      .gte('fecha_fin', fechaISO)
+      .order('creado_en', { ascending: false })
+      .limit(1);
+
+    if (errBloques) {
+      console.error('Error cargando horarios:', errBloques.message);
+      timeHelp.textContent = 'Error al cargar el horario. Intenta de nuevo.';
+      return;
+    }
+    if (!bloques || !bloques.length) {
+      timeHelp.textContent = 'Sin horario publicado para esa fecha.';
+      return;
+    }
+
+    const bloque = bloques[0];
+
+    const { data: dias, error: errDias } = await supabase
+      .from('dia_horario')
+      .select('dia_id, trabaja, hora_inicio, hora_fin, almuerzo_inicio, almuerzo_fin')
+      .eq('conjunto_horario_id', bloque.id);
+
+    if (errDias) {
+      console.error('Error cargando días de horario:', errDias.message);
+      timeHelp.textContent = 'Error al cargar el horario del día.';
+      return;
+    }
+
+    const jsIdx = new Date(fechaISO + 'T00:00:00').getDay(); // 0..6
+    const diaIdEsperado = JS_TO_DB_DIA[jsIdx];
+    const diaRow = (dias || []).find((d) => d.dia_id === diaIdEsperado);
+
+    if (!diaRow || !diaRow.trabaja || !diaRow.hora_inicio || !diaRow.hora_fin || diaRow.hora_inicio >= diaRow.hora_fin) {
+      timeHelp.textContent = 'Sin horario publicado para ese día.';
+      return;
+    }
+
+    const day = {
+      work: diaRow.trabaja,
+      start: diaRow.hora_inicio.slice(0, 5),
+      end: diaRow.hora_fin.slice(0, 5),
+      lunchStart: diaRow.almuerzo_inicio ? diaRow.almuerzo_inicio.slice(0, 5) : null,
+      lunchEnd:   diaRow.almuerzo_fin ? diaRow.almuerzo_fin.slice(0, 5) : null,
+    };
+
+    const wins  = windowsFromDay(day);
+    let slots   = slotsFromWindows(wins, dur);
+
+    // 2. Quitar slots ocupados por citas reales
+    const { data: citas, error: errCitas } = await supabase
+      .from('citas')
+      .select('inicia_en, termina_en')
+      .eq('negocio_id', negocio.id)
+      .eq('personal_id', personalId)
+      .eq('fecha', fechaISO);
+
+    if (!errCitas && citas && citas.length) {
+      const ocupadas = citas.map((c) => {
+        const ini = new Date(c.inicia_en);
+        const fin = new Date(c.termina_en);
+        const s = String(ini.getHours()).padStart(2, '0') + ':' + String(ini.getMinutes()).padStart(2, '0');
+        const e = String(fin.getHours()).padStart(2, '0') + ':' + String(fin.getMinutes()).padStart(2, '0');
+        return { start: s, end: e };
       });
 
-      const mapBtn=document.createElement('a');
-      mapBtn.className='btn btn-green'; mapBtn.style.width='auto'; mapBtn.style.margin='0';
-      mapBtn.textContent='Ver en mapa';
-      const url = (b.lat && b.lng)
-        ? `https://www.google.com/maps?q=${b.lat},${b.lng}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.name||'')}`;
-      mapBtn.href=url; mapBtn.target='_blank';
-
-      bizListModal.appendChild(nameDiv);
-      bizListModal.appendChild(selBtn);
-      bizListModal.appendChild(mapBtn);
-    });
-  }
-  modalMap.style.display='flex';
-}
-btnMap.addEventListener('click', openMap);
-closeMap.addEventListener('click', ()=> modalMap.style.display='none');
-modalMap.addEventListener('click', e=>{ if(e.target===modalMap) modalMap.style.display='none'; });
-dontKnow.addEventListener('change', ()=>{ btnMap.style.display = dontKnow.checked ? 'inline-block' : 'none'; });
-
-/* ===== Cargar negocio/servicios/barberos ===== */
-function loadBusinessFromInput(){
-  const txt=plain(bizInput.value);
-  if(!txt){ currentBiz=null; disableServiceStaff(); return; }
-  const b=getBusinesses().find(x=>plain(x.name)===txt);
-  if(!b){ currentBiz=null; disableServiceStaff(); return; }
-  currentBiz=b;
-
-  // servicios
-  service.innerHTML='<option value="">— Seleccione —</option>';
-  (b.services||[]).sort((a,b)=>a.order-b.order).forEach(s=>{
-    const op=document.createElement('option');
-    op.value=s.id; op.textContent=`${s.name} (${s.durationMins} min)`; op.dataset.duration=s.durationMins;
-    service.appendChild(op);
-  });
-  service.disabled=false;
-
-  // barberos se cargan tras elegir servicio
-  staff.innerHTML='<option value="">— Seleccione —</option>';
-  staff.disabled=true;
-
-  currentService=null; currentStaff=''; svcDur.textContent='Duración: —';
-  buildTimeOptions();
-}
-function disableServiceStaff(){
-  service.innerHTML='<option value="">— Seleccione —</option>'; service.disabled=true;
-  staff.innerHTML  ='<option value="">— Seleccione —</option>'; staff.disabled=true;
-  currentService=null; currentStaff=''; svcDur.textContent='Duración: —';
-  buildTimeOptions();
-}
-bizInput.addEventListener('blur',   loadBusinessFromInput);
-bizInput.addEventListener('change', loadBusinessFromInput);
-bizInput.addEventListener('input', ()=>{ clearTimeout(bizInput._t); bizInput._t=setTimeout(loadBusinessFromInput,300); });
-
-service.addEventListener('change', ()=>{
-  const id=service.value;
-  if(!currentBiz || !id){ staff.disabled=true; staff.innerHTML='<option value="">— Seleccione —</option>'; currentService=null; buildTimeOptions(); return; }
-  const svc=(currentBiz.services||[]).find(s=>String(s.id)===String(id));
-  currentService=svc||null;
-  svcDur.textContent = svc ? `Duración: ${svc.durationMins} min` : 'Duración: —';
-
-  staff.innerHTML='<option value="">— Seleccione —</option>';
-  if(!svc){ staff.disabled=true; buildTimeOptions(); return; }
-  (currentBiz.staff||[]).forEach(p=>{
-    if(p && p.name && p.offers && p.offers[id]){
-      const op=document.createElement('option'); op.value=p.name; op.textContent=p.name; staff.appendChild(op);
+      slots = slots.filter((t) => {
+        const e = addMinutes(t, dur);
+        return !ocupadas.some((b) => overlap(t, e, b.start, b.end));
+      });
     }
-  });
-  staff.disabled=false;
-  buildTimeOptions();
-});
-staff.addEventListener('change', ()=>{ currentStaff=staff.value; buildTimeOptions(); });
-dateEl.addEventListener('change', buildTimeOptions);
 
-/* ===== Horario disponible (cy_schedules) ===== */
-function getScheduleBlockFor(dateISO){
-  if(!currentBiz || !currentStaff) return null;
-  const blocks=getSchedules().filter(b =>
-    (b.businessSlug||'')===(currentBiz.slug||'') &&
-    (b.staffName||'')===currentStaff &&
-    dateISO>=b.dateStart && dateISO<=b.dateEnd
-  );
-  if(!blocks.length) return null;
-  blocks.sort((a,b)=> (a.createdAt||'')<(b.createdAt||'')?-1:1);
-  return blocks[blocks.length-1];
-}
-function windowsFromDay(d){
-  if(!d||!d.work||!d.start||!d.end||d.start>=d.end) return [];
-  const base=[[d.start,d.end]];
-  if(d.lunchStart&&d.lunchEnd&&d.lunchStart<d.lunchEnd){
-    const out=[];
-    base.forEach(([a,b])=>{
-      if(d.lunchStart>a) out.push([a,Math.min(b,d.lunchStart)]);
-      if(d.lunchEnd<b)   out.push([Math.max(a,d.lunchEnd),b]);
+    if (!slots.length) {
+      timeHelp.textContent = 'No hay horas disponibles para ese día.';
+      return;
+    }
+
+    timeSel.innerHTML = '<option value="">— Selecciona una hora —</option>';
+    slots.forEach((t) => {
+      const op = document.createElement('option');
+      op.value = t;
+      op.textContent = t;
+      timeSel.appendChild(op);
     });
-    return out.filter(([a,b])=>a<b);
-  }
-  return base;
-}
-function slotsFromWindows(wins,dur){
-  const s=[]; for(const [a,b] of wins){ let t=a; while(toMin(t)+dur<=toMin(b)){ s.push(t); t=addMinutes(t,10);} } return s;
-}
-function removeBooked(slots,dateISO,dur){
-  const books=getBookings().filter(b =>
-    b.businessSlug===(currentBiz.slug||'') &&
-    b.staffName===currentStaff && b.date===dateISO
-  );
-  return slots.filter(t=>{
-    const e=addMinutes(t,dur);
-    return !books.some(b=>overlap(t,e,b.start,b.end));
-  });
-}
-function buildTimeOptions(){
-  timeSel.innerHTML='<option value="">— Selecciona fecha, servicio y barbero —</option>';
-  timeSel.disabled=true; timeHelp.textContent='';
-  if(!currentService || !currentStaff || !dateEl.value) return;
-
-  const block=getScheduleBlockFor(dateEl.value);
-  if(!block){ timeHelp.textContent='Sin horario publicado para esa fecha.'; return; }
-
-  const jsIdx=(new Date(dateEl.value+'T00:00:00')).getDay(); // 0..6
-  const schedIdx=(jsIdx+6)%7; // Dom->6, Lun->0...
-  const day=Array.isArray(block.schedule)?block.schedule[schedIdx]:null;
-  if(!day){ timeHelp.textContent='Sin horario publicado para ese día.'; return; }
-  if(!day.work||!day.start||!day.end||day.start>=day.end){ timeHelp.textContent='Día no laborable.'; return; }
-
-  const wins=windowsFromDay(day);
-  const dur=Number(currentService.durationMins||0);
-  let slots=slotsFromWindows(wins,dur);
-  slots=removeBooked(slots,dateEl.value,dur);
-
-  if(!slots.length){ timeHelp.textContent='No hay horas disponibles para ese día.'; return; }
-  timeSel.innerHTML='<option value="">— Selecciona una hora —</option>';
-  slots.forEach(t=>{ const op=document.createElement('option'); op.value=t; op.textContent=t; timeSel.appendChild(op); });
-  timeSel.disabled=false;
-}
-
-/* ===== Resumen en vivo ===== */
-function updateSummary(){
-  const name=attendee.value.trim();
-  const businessName=currentBiz?currentBiz.name:'';
-  const svcName=currentService?currentService.name:'';
-  const staffName=currentStaff||'';
-  const date=dateEl.value||'';
-  const start=timeSel.value||'';
-  const end=(start&&currentService)?addMinutes(start,Number(currentService.durationMins||0)):'';
-  summary.value=
-    (name?`Asistente: ${name}\n`:``)+
-    (businessName?`Establecimiento: ${businessName}\n`:``)+
-    (svcName?`Servicio: ${svcName} (${currentService.durationMins} min)\n`:``)+
-    (staffName?`Barbero: ${staffName}\n`:``)+
-    (date?`Fecha: ${date}\n`:``)+
-    (start?`Hora: ${start} - ${end}`:``);
-}
-[attendee,bizInput,service,staff,dateEl,timeSel].forEach(el=>{
-  el.addEventListener('input',updateSummary);
-  el.addEventListener('change',updateSummary);
-});
-
-/* ===== Programar cita ===== */
-btnSchedule.addEventListener('click', ()=>{
-  const name=attendee.value.trim();
-  if(!name){ alert('Ingresa el nombre del asistente.'); return; }
-  if(!currentBiz){ alert('Selecciona un establecimiento válido.'); return; }
-  if(!currentService){ alert('Selecciona el servicio.'); return; }
-  if(!currentStaff){ alert('Selecciona el barbero.'); return; }
-  if(!dateEl.value){ alert('Selecciona la fecha.'); return; }
-  if(!timeSel.value){ alert('Selecciona la hora.'); return; }
-
-  const start=timeSel.value;
-  const end=addMinutes(start, Number(currentService.durationMins||0));
-
-  // evita choques
-  const same=getBookings().filter(b =>
-    b.businessSlug===(currentBiz.slug||'') && b.staffName===currentStaff && b.date===dateEl.value
-  );
-  if(same.some(b=>overlap(start,end,b.start,b.end))){
-    alert('Esa franja ya está ocupada. Elige otra hora.'); return;
+    timeSel.disabled = false;
   }
 
-  // guarda booking
-  const bookings=getBookings();
-  const id='bk_'+Math.random().toString(36).slice(2,9);
-  const booking = {
-    id,
-    attendee:name,
-    businessSlug: currentBiz.slug||'',
-    businessName: currentBiz.name||'',
-    serviceId: currentService.id,
-    serviceName: currentService.name,
-    durationMins: Number(currentService.durationMins||0),
-    staffName: currentStaff,
-    date: dateEl.value,
-    start, end
-  };
-  bookings.push(booking);
-  saveBookings(bookings);
+  /* ==================== Mapa de negocios ==================== */
 
-  // guarda métrica (cy_appointments) — usamos el MISMO id para poder actualizar/cancelar
-  const appts=getAppts();
-  appts.push({
-    id,
-    attendee:name,
-    businessSlug: booking.businessSlug,
-    businessName: booking.businessName,
-    staffName: booking.staffName,
-    serviceName: booking.serviceName,
-    date: booking.date,
-    timeStart: booking.start,
-    timeEnd: booking.end,
-    status: 'scheduled',
-    createdAt: new Date().toISOString()
+  function openMap() {
+    bizListModal.innerHTML = '';
+    if (!negocios.length) {
+      bizListModal.textContent = 'No hay establecimientos registrados.';
+    } else {
+      negocios.forEach((b) => {
+        const nameDiv = document.createElement('div');
+        nameDiv.innerHTML = `<strong>${b.nombre || 'Sin nombre'}</strong><br><span class="muted">${b.direccion || ''}</span>`;
+
+        const selBtn = document.createElement('button');
+        selBtn.className = 'btn btn-blue';
+        selBtn.style.width = 'auto';
+        selBtn.style.margin = '0';
+        selBtn.textContent = 'Seleccionar';
+        selBtn.addEventListener('click', () => {
+          bizInput.value = b.nombre || '';
+          modalMap.style.display = 'none';
+          populateServiceAndStaff(b.nombre || '').catch(console.error);
+        });
+
+        const mapBtn = document.createElement('a');
+        mapBtn.className = 'btn btn-green';
+        mapBtn.style.width = 'auto';
+        mapBtn.style.margin = '0';
+        mapBtn.textContent = 'Ver en mapa';
+
+        const url =
+          b.latitud && b.longitud
+            ? `https://www.google.com/maps?q=${b.latitud},${b.longitud}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.nombre || '')}`;
+
+        mapBtn.href = url;
+        mapBtn.target = '_blank';
+
+        bizListModal.appendChild(nameDiv);
+        bizListModal.appendChild(selBtn);
+        bizListModal.appendChild(mapBtn);
+      });
+    }
+    modalMap.style.display = 'flex';
+  }
+
+  /* ==================== Programar cita ==================== */
+
+  function updateSummary() {
+    const ses = getSesion();
+    const nombreCliente = attendee.value.trim() || (ses?.nombre_completo || ses?.nombre || '');
+
+    const negocio = negocioSeleccionado;
+    const svc = serviciosNegocioActual.find((s) => String(s.id) === String(service.value));
+    const barber = personalNegocioActual.find((p) => String(p.id) === String(staff.value));
+
+    const f = dateEl.value || '';
+    const h = timeSel.value || '';
+    const dur = svc ? Number(svc.duracion_min || 0) : 0;
+    const hEnd = h && dur ? addMinutes(h, dur) : '';
+
+    summary.value =
+      (nombreCliente ? `Asistente: ${nombreCliente}\n` : '') +
+      (negocio ? `Establecimiento: ${negocio.nombre}\n` : '') +
+      (svc ? `Servicio: ${svc.nombre} (${svc.duracion_min} min)\n` : '') +
+      (barber ? `Barbero: ${barber.nombre_publico}\n` : '') +
+      (f ? `Fecha: ${f}\n` : '') +
+      (h ? `Hora: ${h}${hEnd ? ' - ' + hEnd : ''}\n` : '');
+  }
+
+  async function programar() {
+    const ses = requireSesion();
+    if (!ses) return;
+
+    const asist = attendee.value.trim() || ses.nombre_completo || ses.nombre;
+    const negocio = negocioSeleccionado;
+    const svcId = service.value;
+    const personalId = staff.value;
+    const f = dateEl.value;
+    const h = timeSel.value;
+
+    if (!asist || !negocio || !svcId || !personalId || !f || !h) {
+      alert('Completa todos los campos antes de programar la cita.');
+      return;
+    }
+
+    const servicioSel = serviciosNegocioActual.find((s) => String(s.id) === String(svcId));
+    const barberSel   = personalNegocioActual.find((p) => String(p.id) === String(personalId));
+
+    if (!servicioSel || !barberSel) {
+      alert('Servicio o barbero inválido.');
+      return;
+    }
+
+    await cargarEstadoPendiente();
+    if (!estadoCitaPendienteId) {
+      alert('No se encontró el estado "pendiente" en la base de datos.');
+      return;
+    }
+
+    const dur = Number(servicioSel.duracion_min || 0);
+    const inicioDate = new Date(`${f}T${h}:00`);
+    const finDate    = new Date(inicioDate.getTime() + dur * 60000);
+
+    // comprobación rápida de choque
+    const { data: citas, error: errCitas } = await supabase
+      .from('citas')
+      .select('inicia_en, termina_en')
+      .eq('negocio_id', negocio.id)
+      .eq('personal_id', personalId)
+      .eq('fecha', f);
+
+    if (errCitas) {
+      console.error('Error verificando choques:', errCitas.message);
+    } else if (citas && citas.length) {
+      const hayChoque = citas.some((c) => {
+        const ini = new Date(c.inicia_en);
+        const fin = new Date(c.termina_en);
+        const s = String(ini.getHours()).padStart(2, '0') + ':' + String(ini.getMinutes()).padStart(2, '0');
+        const e = String(fin.getHours()).padStart(2, '0') + ':' + String(fin.getMinutes()).padStart(2, '0');
+        return overlap(h, addMinutes(h, dur), s, e);
+      });
+      if (hayChoque) {
+        alert('Esa franja ya está ocupada. Elige otra hora.');
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from('citas')
+      .insert({
+        negocio_id:         negocio.id,
+        personal_id:        personalId,
+        servicio_id:        svcId,
+        usuario_cliente_id: ses.usuario_id,
+        nombre_invitado:    asist,
+        fecha:              f,
+        inicia_en:          inicioDate.toISOString(),
+        termina_en:         finDate.toISOString(),
+        estado_id:          estadoCitaPendienteId,
+        notas:              null,
+      });
+
+    if (error) {
+      console.error('Error al programar cita:', error.message);
+      alert('Ocurrió un error al programar la cita. Intenta nuevamente.');
+      return;
+    }
+
+    updateSummary();
+    alert('¡Cita programada con éxito!');
+  }
+
+  function limpiarFormulario() {
+    attendee.value = '';
+    bizInput.value = '';
+    service.innerHTML = '<option value="">— Seleccione —</option>';
+    staff.innerHTML   = '<option value="">— Seleccione —</option>';
+    svcDur.textContent = 'Duración: —';
+    negocioSeleccionado = null;
+    serviciosNegocioActual = [];
+    personalNegocioActual  = [];
+    dateEl.value = '';
+    timeSel.innerHTML = '<option value="">— Selecciona fecha, servicio y barbero —</option>';
+    timeSel.disabled = true;
+    timeHelp.textContent = '';
+    summary.value = '';
+  }
+
+  /* ==================== Eventos ==================== */
+
+  dontKnow.addEventListener('change', () => {
+    btnMap.style.display = dontKnow.checked ? 'inline-block' : 'none';
   });
-  saveAppts(appts);
 
-  updateSummary();
-  alert('¡Cita programada con éxito!');
-});
+  btnMap.addEventListener('click', openMap);
+  closeMap.addEventListener('click', () => { modalMap.style.display = 'none'; });
+  modalMap.addEventListener('click', (e) => {
+    if (e.target === modalMap) modalMap.style.display = 'none';
+  });
 
-/* ===== Limpiar / ir a otras pantallas ===== */
-btnClear.addEventListener('click', ()=>{
-  attendee.value=''; bizInput.value=''; currentBiz=null;
-  disableServiceStaff();
-  dateEl.value=''; timeSel.innerHTML='<option value="">— Selecciona fecha, servicio y barbero —</option>'; timeSel.disabled=true; timeHelp.textContent='';
-  summary.value='';
-});
-btnComment.addEventListener('click', ()=>{ window.location.href='interfaz_comentarios.html'; });
-btnCancel.addEventListener('click',   ()=>{ window.location.href='interfaz_cancelar.html'; });
+  function handleBizInput() {
+    populateServiceAndStaff(bizInput.value).catch(console.error);
+  }
 
-/* init */
-(function(){ refreshDatalist(); updateSummary(); })();
+  bizInput.addEventListener('blur', handleBizInput);
+  bizInput.addEventListener('change', handleBizInput);
+  bizInput.addEventListener('input', () => {
+    clearTimeout(bizInput._t);
+    bizInput._t = setTimeout(handleBizInput, 300);
+  });
+
+  service.addEventListener('change', () => {
+    setDurationHintFromService();
+    buildTimeOptions().catch(console.error);
+    updateSummary();
+  });
+
+  staff.addEventListener('change', () => {
+    buildTimeOptions().catch(console.error);
+    updateSummary();
+  });
+
+  dateEl.addEventListener('change', () => {
+    buildTimeOptions().catch(console.error);
+    updateSummary();
+  });
+
+  attendee.addEventListener('input', updateSummary);
+  timeSel.addEventListener('change', updateSummary);
+
+  btnSchedule.addEventListener('click', () => {
+    programar().catch((err) => {
+      console.error(err);
+      alert('Ocurrió un error inesperado al programar la cita.');
+    });
+  });
+
+  btnClear.addEventListener('click', () => {
+    limpiarFormulario();
+  });
+
+  btnComment.addEventListener('click', () => {
+    window.location.href = 'interfaz_comentarios.html';
+  });
+
+  btnCancel.addEventListener('click', () => {
+    window.location.href = 'interfaz_cancelar.html';
+  });
+
+  /* ==================== Init ==================== */
+  async function init() {
+    const ses = requireSesion();
+    if (!ses) return;
+
+    await Promise.all([loadNegocios(), cargarEstadoPendiente()]);
+
+    // Autocompletar nombre del asistente con el nombre del usuario si está vacío
+    const nombre = ses.nombre_completo || ses.nombre;
+    if (nombre && !attendee.value) {
+      attendee.value = nombre;
+    }
+
+    updateSummary();
+  }
+
+  init().catch((err) => console.error('Error inicializando interfaz_agendar:', err));
 </script>
+
 
 </body>
 </html>

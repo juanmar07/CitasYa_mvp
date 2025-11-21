@@ -95,137 +95,185 @@
     }
   </style>
 </head>
+</head>
+
 <body>
-  <!-- Banner -->
-  <header class="app-banner" role="banner">
-    <div class="banner-box">
-      <div class="banner-inner">
-        <a href="#" class="back-button banner-back" onclick="history.back(); return false;">&larr; Volver</a>
-        <div class="banner-title">Registro de Cliente</div>
-        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
-          <img src="LogoCitasYa.png" alt="Citas Ya">
-        </a>
+  <div class="page">
+    <header class="header">
+      <div class="logo">
+        <img src="LogoCitasYa.png" alt="Citas Ya" />
+        <span>Citas Ya</span>
       </div>
-    </div>
-  </header>
+      <a href="interfaz_inicio_s.html" class="btn-volver">← Volver</a>
+    </header>
 
-  <div class="container">
-    <h1>Registro de Cliente</h1>
+    <main class="content">
+      <section class="card">
+        <h1>Registrar Cliente</h1>
 
-    <form id="registroForm" novalidate>
-      <label for="nombre">Nombre Completo</label>
-      <input type="text" id="nombre" autocomplete="name" required>
-      <div id="errNombre" class="error">Ingresa tu nombre (mínimo 2 caracteres).</div>
+        <form id="registroForm" novalidate>
+          <label for="nombre">Nombre completo</label>
+          <input type="text" id="nombre" autocomplete="name" required />
+          <div id="errNombre" class="error">Debes ingresar tu nombre.</div>
 
-      <label for="correo">Correo</label>
-      <input type="email" id="correo" autocomplete="email" required>
-      <div class="hint">Ej: nombre@dominio.com</div>
-      <div id="errCorreo" class="error">Ingresa un correo válido que no esté registrado.</div>
+          <label for="correo">Correo electrónico</label>
+          <input type="email" id="correo" autocomplete="email" required />
+          <div class="hint">Será tu usuario principal para iniciar sesión.</div>
+          <div id="errCorreo" class="error">Ingresa un correo válido.</div>
 
-      <label for="numero">Número</label>
-      <input type="tel" id="numero" autocomplete="tel" required>
-      <div class="hint">Solo dígitos, 7 a 15 caracteres.</div>
-      <div id="errNumero" class="error">Ingresa un número válido que no esté registrado.</div>
+          <label for="numero">Número de contacto</label>
+          <input type="tel" id="numero" autocomplete="tel" required />
+          <div class="hint">Solo números, entre 7 y 15 dígitos.</div>
+          <div id="errNumero" class="error">El número no es válido.</div>
 
-      <label for="usuario">Usuario</label>
-      <input type="text" id="usuario" autocomplete="username" required>
-      <div class="hint">3–20 caracteres. Letras, números, punto, guion o guion bajo.</div>
-      <div id="errUsuario" class="error">El usuario no es válido o ya existe.</div>
+          <label for="usuario">Nombre de usuario</label>
+          <input type="text" id="usuario" autocomplete="username" required />
+          <div class="hint">3–20 caracteres. Letras, números, punto, guion o guion bajo.</div>
+          <div id="errUsuario" class="error">El usuario no es válido.</div>
 
-      <label for="contrasena">Contraseña</label>
-      <input type="password" id="contrasena" autocomplete="new-password" required>
-      <div class="hint">Mínimo 6 caracteres.</div>
-      <div id="errPass" class="error">La contraseña es muy corta.</div>
+          <label for="contrasena">Contraseña</label>
+          <input type="password" id="contrasena" autocomplete="new-password" required />
+          <div class="hint">Mínimo 6 caracteres.</div>
+          <div id="errPass" class="error">La contraseña es muy corta.</div>
 
-      <button type="submit" class="btn-registrar btn-slim">Registrar como Cliente</button>
-    </form>
+          <button type="submit" class="btn-registrar btn-slim">Registrar como Cliente</button>
+        </form>
 
-    <div class="business-cta" aria-label="Registro de negocio">
-      <span>¿Eres barbero o tienes una barbería?</span><br>
-      <a href="interfaz_registrar_negocio.html">Registrar mi negocio</a>
-    </div>
+        <div class="business-cta" aria-label="Registro de negocio">
+          <span>¿Eres barbero o tienes una barbería?</span><br />
+          <a href="interfaz_registrar_negocio.html">Registrar mi negocio</a>
+        </div>
 
-    <p>¿Ya tienes cuenta? <a href="interfaz_login.html">Inicia sesión</a></p>
+        <p>¿Ya tienes cuenta? <a href="interfaz_login.html">Inicia sesión</a></p>
+      </section>
+
+      <div class="legal-outside">
+        Todos los derechos reservados © 2025<br />
+        Citas Ya S.A.S - Nit 810.000.000-0
+      </div>
+    </main>
   </div>
 
-  <div class="legal-outside">
-    Todos los derechos reservados © 2025<br>
-    Citas Ya S.A.S - Nit 810.000.000-0
-  </div>
+  <!-- Nuevo script: registro contra Supabase -->
+  <script type="module">
+    import {
+      registrarCliente,
+      guardarSesionLocal,
+      redirigirSegunRol,
+    } from './dataCitasYa.js';
 
-  <script>
-    /* ====== Almacenamiento y retorno ====== */
-    const LS_USERS = 'cy_users';
-    const LS_SESS  = 'cy_session';
-    const SS_RETURN= 'cy_return_to';
+    const LS_RETURN = 'cy_return_to';
 
-    const loadUsers = () => { try { return JSON.parse(localStorage.getItem(LS_USERS)) || []; } catch (_) { return []; } };
-    const saveUsers = (arr) => localStorage.setItem(LS_USERS, JSON.stringify(arr));
-    const saveSession = (user) => localStorage.setItem(LS_SESS, JSON.stringify({ user }));
+    const normEmail = (s) => (s || '').trim().toLowerCase();
+    const normUser = (s) => (s || '').trim().toLowerCase();
+    const normPhone = (s) => (s || '').replace(/\D+/g, '');
 
-    // Normalizadores
-    const normEmail = s => (s||'').trim().toLowerCase();
-    const normUser  = s => (s||'').trim().toLowerCase();
-    const normPhone = s => (s||'').replace(/\D+/g, '');
+    const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(v);
+    const isUser = (v) => /^[a-zA-Z0-9._-]{3,20}$/.test(v);
+    const isPhone = (v) => /^\d{7,15}$/.test(v);
+    const isPass = (v) => (v || '').length >= 6;
 
-    // Validadores
-    const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(v);
-    const isUser  = v => /^[a-zA-Z0-9._-]{3,20}$/.test(v);
-    const isPhone = v => /^\d{7,15}$/.test(v);
-    const isPass  = v => (v||'').length >= 6;
+    const $ = (sel) => document.querySelector(sel);
+    const show = (id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+    };
+    const hide = (id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    };
 
-    // UI helpers
-    const $ = s => document.querySelector(s);
-    const show = id => document.getElementById(id).style.display = 'block';
-    const hide = id => document.getElementById(id).style.display = 'none';
-
-    document.getElementById('registroForm').addEventListener('submit', (e)=>{
+    document.getElementById('registroForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const nombre  = $('#nombre').value.trim();
-      const correo  = normEmail($('#correo').value);
-      const numero  = normPhone($('#numero').value);
+      const nombre = $('#nombre').value.trim();
+      const correo = normEmail($('#correo').value);
+      const numero = normPhone($('#numero').value);
       const usuario = normUser($('#usuario').value);
-      const pass    = $('#contrasena').value;
+      const pass = $('#contrasena').value;
 
       let valid = true;
-      if(!nombre || nombre.length < 2){ show('errNombre'); valid=false; } else hide('errNombre');
-      if(!isEmail(correo)){ show('errCorreo'); valid=false; } else hide('errCorreo');
-      if(!isPhone(numero)){ show('errNumero'); valid=false; } else hide('errNumero');
-      if(!isUser(usuario)){ show('errUsuario'); valid=false; } else hide('errUsuario');
-      if(!isPass(pass)){ show('errPass'); valid=false; } else hide('errPass');
 
-      if(!valid) return;
+      if (!nombre || nombre.length < 2) {
+        show('errNombre');
+        valid = false;
+      } else {
+        hide('errNombre');
+      }
 
-      const users = loadUsers();
-      const dupMail  = users.some(u => (u.email||'') === correo);
-      const dupUser  = users.some(u => (u.username||'') === usuario);
-      const dupPhone = users.some(u => (u.phone||'') === numero);
+      if (!isEmail(correo)) {
+        show('errCorreo');
+        valid = false;
+      } else {
+        hide('errCorreo');
+      }
 
-      if(dupMail){ show('errCorreo'); return; } else hide('errCorreo');
-      if(dupUser){ show('errUsuario'); return; } else hide('errUsuario');
-      if(dupPhone){ show('errNumero'); return; } else hide('errNumero');
+      if (!isPhone(numero)) {
+        show('errNumero');
+        valid = false;
+      } else {
+        hide('errNumero');
+      }
 
-      const newUser = {
-        id: 'u-' + Date.now(),
-        name: nombre,
-        email: correo,
-        phone: numero,
-        username: usuario,
-        password: pass,          // Solo para demo/front-end
-        role: 'cliente',
-        createdAt: new Date().toISOString()
-      };
-      users.push(newUser);
-      saveUsers(users);
+      if (!isUser(usuario)) {
+        show('errUsuario');
+        valid = false;
+      } else {
+        hide('errUsuario');
+      }
 
-      // Crear sesión y redirigir a donde venía (si aplica)
-      saveSession(newUser);
-      const goBack = sessionStorage.getItem(SS_RETURN);
-      if(goBack){
-        window.location.href = goBack;
-      }else{
-        window.location.href = 'interfaz_agendar.html';
+      if (!isPass(pass)) {
+        show('errPass');
+        valid = false;
+      } else {
+        hide('errPass');
+      }
+
+      if (!valid) return;
+
+      try {
+        const { authUser, perfil, needsEmailConfirm } = await registrarCliente({
+          nombre,
+          email: correo,
+          telefono: numero,
+          usuario,
+          contrasena: pass,
+        });
+
+        // Si el proyecto tiene verificación por correo activada
+        if (needsEmailConfirm) {
+          alert(
+            'Tu registro fue creado. Revisa tu correo para confirmar la cuenta y luego inicia sesión desde "Iniciar sesión".'
+          );
+          window.location.href = 'interfaz_login.html';
+          return;
+        }
+
+        if (!authUser || !perfil) {
+          // Registro ok pero sin sesión activa -> pedir login manual
+          alert('Tu cuenta fue creada. Ahora inicia sesión con tu correo y contraseña.');
+          window.location.href = 'interfaz_login.html';
+          return;
+        }
+
+        // Guardar sesión ligera en localStorage
+        guardarSesionLocal(perfil, authUser);
+
+        const goBack = sessionStorage.getItem(LS_RETURN);
+        if (goBack) {
+          window.location.href = goBack;
+        } else {
+          redirigirSegunRol(perfil.rol_id);
+        }
+      } catch (error) {
+        console.error('Error al registrar cliente:', error);
+
+        const msg = (error && error.message) || '';
+        if (msg.includes('User already registered') || msg.includes('already exists')) {
+          alert('Ya existe un usuario registrado con ese correo. Intenta iniciar sesión.');
+        } else {
+          alert('Ocurrió un error al registrarte. Verifica tus datos e inténtalo de nuevo.');
+        }
       }
     });
   </script>

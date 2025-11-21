@@ -78,109 +78,99 @@
     }
   </style>
 </head>
+
 <body>
-  <!-- Banner -->
-  <header class="app-banner" role="banner">
-    <div class="banner-box">
-      <div class="banner-inner">
-        <a href="#" class="back-button banner-back" onclick="history.back(); return false;">&larr; Volver</a>
-        <div class="banner-title">Iniciar sesión</div>
-        <a href="interfaz_inicio_s.html" class="banner-logo" aria-label="Ir al inicio">
-          <img src="LogoCitasYa.png" alt="Citas Ya">
-        </a>
+  <div class="page">
+    <header class="header">
+      <div class="logo">
+        <img src="LogoCitasYa.png" alt="Citas Ya" />
+        <span>Citas Ya</span>
       </div>
-    </div>
-  </header>
+      <a href="interfaz_inicio_s.html" class="btn-volver">← Volver</a>
+    </header>
 
-  <div class="container">
-    <h1>Iniciar sesión</h1>
+    <main class="content">
+      <section class="card">
+        <h1>Iniciar sesión</h1>
 
-    <form id="loginForm" novalidate>
-      <label for="ident">Correo, usuario o número</label>
-      <input id="ident" type="text" autocomplete="username" required>
-      <div class="hint">Puedes usar cualquiera de tus datos registrados.</div>
-      <div id="errIdent" class="error">Ingresa un dato válido.</div>
+        <form id="loginForm" novalidate>
+          <label for="ident">Correo electrónico</label>
+          <input id="ident" type="email" autocomplete="username" required />
+          <div class="hint">Ingresa el correo asociado a tu cuenta.</div>
+          <div id="errIdent" class="error">Ingresa un correo válido.</div>
 
-      <label for="pass">Contraseña</label>
-      <input id="pass" type="password" autocomplete="current-password" required>
-      <div id="errPass" class="error">Ingresa tu contraseña.</div>
+          <label for="pass">Contraseña</label>
+          <input id="pass" type="password" autocomplete="current-password" required />
+          <div id="errPass" class="error">Ingresa tu contraseña.</div>
 
-      <button type="submit" class="btn-blue btn-slim">Iniciar Sesión</button>
-    </form>
+          <button type="submit" class="btn-blue btn-slim">Iniciar Sesión</button>
+        </form>
 
-    <p style="text-align:center; color:#003366;">
-      ¿No tienes cuenta? <a href="interfaz_registro_cliente.html">Regístrate</a>
-    </p>
+        <p style="text-align:center; color:#003366;">
+          ¿No tienes cuenta? <a href="interfaz_registro_cliente.html">Regístrate</a>
+        </p>
+      </section>
+
+      <div class="legal-outside">
+        Todos los derechos reservados © 2025<br />
+        Citas Ya S.A.S - Nit 810.000.000-0
+      </div>
+    </main>
   </div>
 
-  <div class="legal-outside">
-    Todos los derechos reservados © 2025<br>
-    Citas Ya S.A.S - Nit 810.000.000-0
-  </div>
+  <!-- Nuevo script: login contra Supabase -->
+  <script type="module">
+    import {
+      loginConEmailYPassword,
+      guardarSesionLocal,
+      redirigirSegunRol,
+    } from './dataCitasYa.js';
 
-  <script>
-    // ======= Almacenamiento =======
-    const LS_USERS = 'cy_users';
-    const LS_CURRENT = 'cy_current_user';
-
-    const loadUsers = () => {
-      try { return JSON.parse(localStorage.getItem(LS_USERS)) || []; }
-      catch (_) { return []; }
-    };
-    const saveCurrent = (u) => localStorage.setItem(LS_CURRENT, JSON.stringify(u));
-
-    // Normalizadores
-    const normEmail = s => (s||'').trim().toLowerCase();
-    const normUser  = s => (s||'').trim().toLowerCase();
-    const normPhone = s => (s||'').replace(/\D+/g, '');
-
-    // Detección de tipo
-    const detectType = v => {
-      const s = v.trim();
-      if(!s) return 'none';
-      if(s.includes('@')) return 'email';
-      if(/^\d{7,15}$/.test(s.replace(/\D+/g,''))) return 'phone';
-      return 'user';
+    const $ = (sel) => document.querySelector(sel);
+    const show = (id, on = true) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = on ? 'block' : 'none';
     };
 
-    const $ = s => document.querySelector(s);
-    const show = (id, on=true)=>{ const el=document.getElementById(id); if(el) el.style.display = on?'block':'none'; };
+    const form = document.getElementById('loginForm');
 
-    document.getElementById('loginForm').addEventListener('submit', (e)=>{
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const identRaw = $('#ident').value || '';
+
+      const email = ($('#ident').value || '').trim();
       const pass = $('#pass').value || '';
 
       let ok = true;
-      if(!identRaw.trim()){ show('errIdent', true); ok=false; } else show('errIdent', false);
-      if(!pass){ show('errPass', true); ok=false; } else show('errPass', false);
-      if(!ok) return;
-
-      const users = loadUsers();
-      const kind = detectType(identRaw);
-      let user = null;
-
-      if(kind === 'email'){
-        const email = normEmail(identRaw);
-        user = users.find(u => u.email === email);
-      }else if(kind === 'phone'){
-        const phone = normPhone(identRaw);
-        user = users.find(u => u.phone === phone);
-      }else{ // username
-        const username = normUser(identRaw);
-        user = users.find(u => u.username === username);
+      if (!email) {
+        show('errIdent', true);
+        ok = false;
+      } else {
+        show('errIdent', false);
       }
 
-      if(!user || user.password !== pass){
-        alert('Credenciales inválidas. Verifica tus datos.');
-        return;
+      if (!pass) {
+        show('errPass', true);
+        ok = false;
+      } else {
+        show('errPass', false);
       }
 
-      // Guardar sesión sencilla (solo demo/front-end)
-      saveCurrent({ id:user.id, name:user.name, username:user.username, email:user.email, phone:user.phone, loggedAt: Date.now() });
+      if (!ok) return;
 
-      // Redirigir a la experiencia de cliente (agendar)
-      window.location.href = 'interfaz_agendar.html';
+      try {
+        const { authUser, perfil } = await loginConEmailYPassword(email, pass);
+
+        if (!authUser || !perfil) {
+          alert('No se pudo cargar tu perfil. Intenta de nuevo.');
+          return;
+        }
+
+        guardarSesionLocal(perfil, authUser);
+        redirigirSegunRol(perfil.rol_id);
+      } catch (error) {
+        console.error('Error al iniciar sesión:', error);
+        alert(error.message || 'Credenciales inválidas o error al iniciar sesión.');
+      }
     });
   </script>
 </body>
